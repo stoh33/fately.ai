@@ -47,8 +47,11 @@ const copy = {
     bloodO: 'O형',
     bloodAB: 'AB형',
     cta: '사주 보기',
+    loading: '보고서 생성 중...',
     reset: '다시 입력',
     helper: '입력한 정보는 사주 해석 목적 외에는 사용되지 않습니다.',
+    resultTitle: '사주 보고서',
+    errorTitle: '요청 실패',
     langKo: '한국어',
     langEn: 'English',
   },
@@ -80,16 +83,81 @@ const copy = {
     bloodO: 'Type O',
     bloodAB: 'Type AB',
     cta: 'View Saju',
+    loading: 'Generating report...',
     reset: 'Reset',
     helper: 'Your information is used only for this reading.',
+    resultTitle: 'Saju Report',
+    errorTitle: 'Request failed',
     langKo: 'Korean',
     langEn: 'English',
   },
 }
 
+type ApiResponse = {
+  report?: string
+  error?: string
+  detail?: string
+}
+
 function App() {
   const [lang, setLang] = useState<'ko' | 'en'>('ko')
+  const [isLoading, setIsLoading] = useState(false)
+  const [report, setReport] = useState('')
+  const [error, setError] = useState('')
   const t = useMemo(() => copy[lang], [lang])
+
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    const formData = new FormData(event.currentTarget)
+
+    setIsLoading(true)
+    setError('')
+    setReport('')
+
+    try {
+      const payload = {
+        lang,
+        birthYear: String(formData.get('birthYear') || ''),
+        birthMonth: String(formData.get('birthMonth') || ''),
+        birthDay: String(formData.get('birthDay') || ''),
+        birthHour: String(formData.get('birthHour') || ''),
+        birthplace: String(formData.get('birthplace') || ''),
+        gender: String(formData.get('gender') || ''),
+        bloodType: String(formData.get('bloodType') || ''),
+      }
+
+      const response = await fetch('/api/saju', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload),
+      })
+
+      const data = (await response.json()) as ApiResponse
+
+      if (!response.ok || !data.report) {
+        throw new Error(data.error || data.detail || 'Unknown error')
+      }
+
+      setReport(data.report)
+    } catch (submitError) {
+      setError(
+        submitError instanceof Error ? submitError.message : 'Failed to generate report.',
+      )
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const handleReset = (event: React.MouseEvent<HTMLButtonElement>) => {
+    const form = event.currentTarget.form
+    if (form) {
+      form.reset()
+    }
+    setError('')
+    setReport('')
+  }
 
   return (
     <div className="app">
@@ -121,11 +189,11 @@ function App() {
             <p>{t.sectionHelp}</p>
           </header>
 
-          <form className="form">
+          <form className="form" onSubmit={handleSubmit}>
             <div className="form-grid date-grid">
               <label className="field">
                 <span>{t.birthYear}</span>
-                <select name="birthYear" defaultValue="">
+                <select name="birthYear" defaultValue="" required>
                   <option value="" disabled>
                     {t.selectYear}
                   </option>
@@ -139,7 +207,7 @@ function App() {
 
               <label className="field">
                 <span>{t.birthMonth}</span>
-                <select name="birthMonth" defaultValue="">
+                <select name="birthMonth" defaultValue="" required>
                   <option value="" disabled>
                     {t.selectMonth}
                   </option>
@@ -153,7 +221,7 @@ function App() {
 
               <label className="field">
                 <span>{t.birthDay}</span>
-                <select name="birthDay" defaultValue="">
+                <select name="birthDay" defaultValue="" required>
                   <option value="" disabled>
                     {t.selectDay}
                   </option>
@@ -169,7 +237,7 @@ function App() {
             <div className="form-grid time-place-grid">
               <label className="field">
                 <span>{t.birthHour}</span>
-                <select name="birthHour" defaultValue="">
+                <select name="birthHour" defaultValue="" required>
                   <option value="" disabled>
                     {t.selectHour}
                   </option>
@@ -187,6 +255,7 @@ function App() {
                   type="text"
                   name="birthplace"
                   placeholder={t.placePlaceholder}
+                  required
                 />
               </label>
             </div>
@@ -194,7 +263,7 @@ function App() {
             <div className="inline-group">
               <label className="field">
                 <span>{t.gender}</span>
-                <select name="gender" defaultValue="">
+                <select name="gender" defaultValue="" required>
                   <option value="" disabled>
                     {t.selectGender}
                   </option>
@@ -206,7 +275,7 @@ function App() {
 
               <label className="field">
                 <span>{t.bloodType}</span>
-                <select name="bloodType" defaultValue="">
+                <select name="bloodType" defaultValue="" required>
                   <option value="" disabled>
                     {t.selectBlood}
                   </option>
@@ -219,15 +288,29 @@ function App() {
             </div>
 
             <div className="actions">
-              <button type="submit" className="primary">
-                {t.cta}
+              <button type="submit" className="primary" disabled={isLoading}>
+                {isLoading ? t.loading : t.cta}
               </button>
-              <button type="button" className="ghost">
+              <button type="button" className="ghost" onClick={handleReset}>
                 {t.reset}
               </button>
             </div>
 
             <p className="helper">{t.helper}</p>
+
+            {error ? (
+              <section className="result error-box" aria-live="polite">
+                <h3>{t.errorTitle}</h3>
+                <p>{error}</p>
+              </section>
+            ) : null}
+
+            {report ? (
+              <section className="result" aria-live="polite">
+                <h3>{t.resultTitle}</h3>
+                <pre>{report}</pre>
+              </section>
+            ) : null}
           </form>
         </section>
       </main>
