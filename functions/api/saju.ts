@@ -54,8 +54,9 @@ Input:
 
 Output format (Markdown):
 1) Overall summary (4-6 bullet points)
-2) 2026 outlook by section: Work, Wealth, Relationships, Career status/authority
-3) Practical action tips (5 bullet points)
+2) 2026 outlook by section: Work, Wealth, Career status/authority, Relationships
+3) Monthly 2026 outlook (January to December, 1-2 bullets per month)
+4) Practical action tips (5 bullet points)
 
 Constraints:
 - Keep it concise and practical.
@@ -74,8 +75,9 @@ Constraints:
 
 출력 형식(마크다운):
 1) 종합운 요약 (불릿 4~6개)
-2) 2026년 운세: 일운/재물운/관계운/관운
-3) 실천 팁 5개
+2) 2026년 운세: 일운/재물운/관운/관계운
+3) 2026년 월별 운세: 1월~12월 (각 월 1~2개 불릿)
+4) 실천 팁 5개
 
 제약:
 - 단정 표현을 피하고 가능성 중심으로 작성.
@@ -162,7 +164,7 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
           content: [{ type: 'input_text', text: prompt }],
         },
       ],
-      max_output_tokens: 900,
+      max_output_tokens: 1200,
     }),
   })
 
