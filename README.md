@@ -2,6 +2,17 @@
 
 This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
 
+## Environment Variables (Cloudflare Pages)
+
+For production, set these in Cloudflare Pages:
+
+- `OPENAI_API_KEY` (required)
+- `OPENAI_MODEL` (optional, default: `gpt-5.2`)
+- `OPENAI_REASONING_EFFORT` (optional: `none|low|medium|high|xhigh`)
+- `ALLOWED_ORIGINS` (optional, comma-separated)
+
+Never commit real API keys. A sample file is provided at `.env.example`.
+
 Currently, two official plugins are available:
 
 - [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
