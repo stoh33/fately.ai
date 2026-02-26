@@ -240,6 +240,11 @@ button:active {
   .span-2 {
     grid-column: span 1;
   }
+
+  .time-place-grid,
+  .inline-group {
+    grid-template-columns: 1fr;
+  }
 }
 
 .primary:disabled {
