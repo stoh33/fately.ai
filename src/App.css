@@ -1,42 +1,217 @@
-#root {
-  max-width: 1280px;
+:root {
+  --bg: #f5efe6;
+  --bg-accent: #efe2d4;
+  --ink: #1e1c17;
+  --muted: #6d5f51;
+  --card: #fffaf3;
+  --border: rgba(30, 28, 23, 0.12);
+  --accent: #c1572a;
+  --accent-dark: #9a421f;
+  --shadow: 0 24px 60px rgba(38, 29, 20, 0.15);
+}
+
+.app {
+  min-height: 100vh;
+  background:
+    radial-gradient(circle at 10% 10%, rgba(255, 246, 234, 0.7), transparent 45%),
+    radial-gradient(circle at 90% 20%, rgba(231, 205, 175, 0.6), transparent 35%),
+    linear-gradient(120deg, var(--bg), var(--bg-accent));
+  color: var(--ink);
+}
+
+.layout {
+  max-width: 1120px;
   margin: 0 auto;
-  padding: 2rem;
-  text-align: center;
+  padding: 72px 20px 96px;
+  display: grid;
+  gap: 40px;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  align-items: start;
 }
 
-.logo {
-  height: 6em;
-  padding: 1.5em;
-  will-change: filter;
-  transition: filter 300ms;
-}
-.logo:hover {
-  filter: drop-shadow(0 0 2em #646cffaa);
-}
-.logo.react:hover {
-  filter: drop-shadow(0 0 2em #61dafbaa);
+.hero {
+  display: grid;
+  gap: 20px;
+  align-content: start;
+  animation: rise 0.8s ease forwards;
 }
 
-@keyframes logo-spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
+.eyebrow {
+  text-transform: uppercase;
+  letter-spacing: 0.28em;
+  font-size: 0.72rem;
+  color: var(--muted);
+  margin: 0;
 }
 
-@media (prefers-reduced-motion: no-preference) {
-  a:nth-of-type(2) .logo {
-    animation: logo-spin infinite 20s linear;
-  }
+.hero h1 {
+  font-family: "Marcellus", "Noto Serif KR", serif;
+  font-size: clamp(2.4rem, 2.8vw, 3.4rem);
+  margin: 0;
+  line-height: 1.1;
+}
+
+.subhead {
+  font-size: 1.02rem;
+  color: var(--muted);
+  margin: 0;
+}
+
+.hero-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 18px;
+  border-radius: 999px;
+  background: rgba(193, 87, 42, 0.12);
+  color: var(--accent-dark);
+  font-weight: 600;
+  font-size: 0.95rem;
+  width: fit-content;
 }
 
 .card {
-  padding: 2em;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 24px;
+  padding: 32px;
+  box-shadow: var(--shadow);
+  animation: rise 0.9s ease 0.1s forwards;
+  opacity: 0;
 }
 
-.read-the-docs {
-  color: #888;
+.card-header {
+  margin-bottom: 24px;
+}
+
+.card-header h2 {
+  margin: 0 0 8px;
+  font-size: 1.6rem;
+  font-family: "Marcellus", "Noto Serif KR", serif;
+}
+
+.card-header p {
+  margin: 0;
+  color: var(--muted);
+}
+
+.form {
+  display: grid;
+  gap: 20px;
+}
+
+.form-grid {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+}
+
+.date-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.time-place-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+.field {
+  display: grid;
+  gap: 8px;
+  font-size: 0.95rem;
+  color: var(--ink);
+}
+
+.field span,
+.field legend {
+  font-weight: 600;
+}
+
+.field select,
+.field input {
+  padding: 12px 14px;
+  border-radius: 14px;
+  border: 1px solid var(--border);
+  background: #fff;
+  font-size: 0.95rem;
+  font-family: "Noto Sans KR", sans-serif;
+  transition: border 0.2s ease, box-shadow 0.2s ease;
+}
+
+.field select:focus,
+.field input:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(193, 87, 42, 0.2);
+}
+
+.span-2 {
+  grid-column: span 2;
+}
+
+.inline-group {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.actions {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+button {
+  font-family: "Noto Sans KR", sans-serif;
+  border-radius: 999px;
+  padding: 12px 26px;
+  border: 1px solid transparent;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+button:active {
+  transform: scale(0.98);
+}
+
+.primary {
+  background: var(--accent);
+  color: #fff;
+  box-shadow: 0 12px 24px rgba(193, 87, 42, 0.25);
+}
+
+.primary:hover {
+  background: var(--accent-dark);
+}
+
+.ghost {
+  background: transparent;
+  color: var(--accent-dark);
+  border-color: rgba(154, 66, 31, 0.35);
+}
+
+.helper {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.88rem;
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (max-width: 720px) {
+  .layout {
+    padding: 56px 18px 80px;
+  }
+
+  .span-2 {
+    grid-column: span 1;
+  }
 }
