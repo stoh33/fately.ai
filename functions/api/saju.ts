@@ -23,72 +23,177 @@ type SajuPayload = {
 type Env = {
   OPENAI_API_KEY: string
   OPENAI_MODEL?: string
+  OPENAI_REASONING_EFFORT?: string
+  ALLOWED_ORIGINS?: string
+}
+
+type ResponseContentPart = {
+  type?: string
+  text?: string
+}
+
+type ResponseOutputItem = {
+  type?: string
+  content?: ResponseContentPart[]
+}
+
+type ResponsesApiResult = {
+  output?: ResponseOutputItem[]
+  output_text?: string
 }
 
 const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
   'Access-Control-Allow-Headers': 'Content-Type',
 }
 
-function badRequest(message: string) {
+const allowedHours = new Set([
+  '자',
+  '축',
+  '인',
+  '묘',
+  '진',
+  '사',
+  '오',
+  '미',
+  '신',
+  '유',
+  '술',
+  '해',
+])
+const allowedGenders = new Set(['female', 'male', 'other'])
+const allowedBloodTypes = new Set(['A', 'B', 'O', 'AB'])
+
+function buildCorsHeaders(origin: string | null, allowedOrigins?: string) {
+  if (!allowedOrigins) {
+    return { 'Access-Control-Allow-Origin': '*' }
+  }
+
+  const allowlist = new Set(
+    allowedOrigins
+      .split(',')
+      .map((item) => item.trim())
+      .filter(Boolean),
+  )
+
+  if (origin && allowlist.has(origin)) {
+    return { 'Access-Control-Allow-Origin': origin }
+  }
+
+  return { 'Access-Control-Allow-Origin': 'null' }
+}
+
+function badRequest(message: string, origin: string | null, allowedOrigins?: string) {
   return new Response(JSON.stringify({ error: message }), {
     status: 400,
     headers: {
       ...corsHeaders,
+      ...buildCorsHeaders(origin, allowedOrigins),
       'content-type': 'application/json; charset=utf-8',
     },
   })
 }
 
-function makePrompt(payload: Required<SajuPayload>) {
-  if (payload.lang === 'en') {
-    return `You are a Korean saju (four pillars) consultant. Create an entertainment-only report in clear English.
-
-Input:
-- Birth date (solar): ${payload.birthYear}-${payload.birthMonth}-${payload.birthDay}
-- Birth hour branch: ${payload.birthHour}
-- Birthplace: ${payload.birthplace}
-- Gender: ${payload.gender}
-- Blood type: ${payload.bloodType}
-
-Output format (Markdown):
-1) Overall summary (4-6 bullet points)
-2) 2026 outlook by section: Work, Wealth, Career status/authority, Relationships
-3) Monthly 2026 outlook (January to December, 1-2 bullets per month)
-4) Practical action tips (5 bullet points)
-
-Constraints:
-- Keep it concise and practical.
-- Do not claim certainty; include uncertainty language.
-- Include one short disclaimer: "For entertainment purposes only."`
-  }
-
-  return `당신은 한국 전통 명리(사주) 상담가입니다. 오락용 참고 보고서를 한국어로 작성하세요.
-
-입력값:
-- 생년월일(양력): ${payload.birthYear}-${payload.birthMonth}-${payload.birthDay}
-- 출생 시지: ${payload.birthHour}
-- 출생지: ${payload.birthplace}
-- 성별: ${payload.gender}
-- 혈액형: ${payload.bloodType}
-
-출력 형식(마크다운):
-1) 종합운 요약 (불릿 4~6개)
-2) 2026년 운세: 일운/재물운/관운/관계운
-3) 2026년 월별 운세: 1월~12월 (각 월 1~2개 불릿)
-4) 실천 팁 5개
-
-제약:
-- 단정 표현을 피하고 가능성 중심으로 작성.
-- 과도한 공포/단정 금지.
-- 마지막에 짧은 문구 포함: "본 내용은 오락적 참고용입니다."`
+function isValidDate(year: number, month: number, day: number) {
+  if (year < 1900 || year > 2100) return false
+  if (month < 1 || month > 12) return false
+  if (day < 1 || day > 31) return false
+  const date = new Date(Date.UTC(year, month - 1, day))
+  return (
+    date.getUTCFullYear() === year &&
+    date.getUTCMonth() === month - 1 &&
+    date.getUTCDate() === day
+  )
 }
 
-export const onRequestOptions: PagesFunction = async () => {
+function assertMaxLen(value: string, maxLen: number, field: string) {
+  if (value.length > maxLen) {
+    throw new Error(`Field too long: ${field}`)
+  }
+}
+
+function extractOutputText(data: ResponsesApiResult) {
+  if (data.output_text && data.output_text.trim()) {
+    return data.output_text.trim()
+  }
+
+  const chunks: string[] = []
+  for (const item of data.output ?? []) {
+    for (const part of item.content ?? []) {
+      if (part.type === 'output_text' || part.type === 'text') {
+        if (part.text) {
+          chunks.push(part.text)
+        }
+      }
+    }
+  }
+
+  const joined = chunks.join('').trim()
+  return joined || null
+}
+
+function buildMessages(payload: Required<SajuPayload>) {
+  if (payload.lang === 'en') {
+    return [
+      {
+        role: 'developer',
+        content:
+          'You are a Korean saju (four pillars) consultant. Create an entertainment-only report in clear English. ' +
+          'Keep it concise and practical. Do not claim certainty; include uncertainty language. ' +
+          'Include one short disclaimer: "For entertainment purposes only."',
+      },
+      {
+        role: 'user',
+        content:
+          `Input:\n` +
+          `- Birth date (solar): ${payload.birthYear}-${payload.birthMonth}-${payload.birthDay}\n` +
+          `- Birth hour branch: ${payload.birthHour}\n` +
+          `- Birthplace: ${payload.birthplace}\n` +
+          `- Gender: ${payload.gender}\n` +
+          `- Blood type: ${payload.bloodType}\n\n` +
+          `Output format (Markdown):\n` +
+          `1) Overall summary (4-6 bullet points)\n` +
+          `2) 2026 outlook by section: Work, Wealth, Career status/authority, Relationships\n` +
+          `3) Monthly 2026 outlook (January to December, 1-2 bullets per month)\n` +
+          `4) Practical action tips (5 bullet points)`,
+      },
+    ]
+  }
+
+  return [
+    {
+      role: 'developer',
+      content:
+        '당신은 한국 전통 명리(사주) 상담가입니다. 오락용 참고 보고서를 한국어로 작성하세요. ' +
+        '단정 표현을 피하고 가능성 중심으로 작성하세요. 과도한 공포/단정 금지. ' +
+        '마지막에 짧은 문구 포함: "본 내용은 오락적 참고용입니다."',
+    },
+    {
+      role: 'user',
+      content:
+        `입력값:\n` +
+        `- 생년월일(양력): ${payload.birthYear}-${payload.birthMonth}-${payload.birthDay}\n` +
+        `- 출생 시지: ${payload.birthHour}\n` +
+        `- 출생지: ${payload.birthplace}\n` +
+        `- 성별: ${payload.gender}\n` +
+        `- 혈액형: ${payload.bloodType}\n\n` +
+        `출력 형식(마크다운):\n` +
+        `1) 종합운 요약 (불릿 4~6개)\n` +
+        `2) 2026년 운세: 일운/재물운/관운/관계운\n` +
+        `3) 2026년 월별 운세: 1월~12월 (각 월 1~2개 불릿)\n` +
+        `4) 실천 팁 5개`,
+    },
+  ]
+}
+
+export const onRequestOptions: PagesFunction<Env> = async ({ request, env }) => {
+  const origin = request.headers.get('Origin')
   return new Response(null, {
     status: 204,
-    headers: corsHeaders,
+    headers: {
+      ...corsHeaders,
+      ...buildCorsHeaders(origin, env.ALLOWED_ORIGINS),
+    },
   })
 }
 
@@ -103,11 +208,13 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
     })
   }
 
+  const origin = request.headers.get('Origin')
+
   let body: SajuPayload
   try {
-    body = await request.json<SajuPayload>()
+    body = (await request.json()) as SajuPayload
   } catch {
-    return badRequest('Invalid JSON body.')
+    return badRequest('Invalid JSON body.', origin, env.ALLOWED_ORIGINS)
   }
 
   const requiredFields: Array<keyof SajuPayload> = [
@@ -122,7 +229,7 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
 
   for (const field of requiredFields) {
     if (!body[field] || String(body[field]).trim() === '') {
-      return badRequest(`Missing field: ${field}`)
+      return badRequest(`Missing field: ${field}`, origin, env.ALLOWED_ORIGINS)
     }
   }
 
@@ -138,8 +245,44 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
     bloodType: String(body.bloodType).trim(),
   }
 
-  const model = env.OPENAI_MODEL || 'gpt-4.1-mini'
-  const prompt = makePrompt(payload)
+  try {
+    assertMaxLen(payload.birthplace, 100, 'birthplace')
+    assertMaxLen(payload.gender, 20, 'gender')
+    assertMaxLen(payload.bloodType, 4, 'bloodType')
+  } catch (err) {
+    return badRequest(
+      err instanceof Error ? err.message : 'Invalid input.',
+      origin,
+      env.ALLOWED_ORIGINS,
+    )
+  }
+
+  const year = Number(payload.birthYear)
+  const month = Number(payload.birthMonth)
+  const day = Number(payload.birthDay)
+  if (!Number.isFinite(year) || !Number.isFinite(month) || !Number.isFinite(day)) {
+    return badRequest('Invalid date fields.', origin, env.ALLOWED_ORIGINS)
+  }
+  if (!isValidDate(year, month, day)) {
+    return badRequest('Invalid birth date.', origin, env.ALLOWED_ORIGINS)
+  }
+  if (!allowedHours.has(payload.birthHour)) {
+    return badRequest('Invalid birth hour.', origin, env.ALLOWED_ORIGINS)
+  }
+  if (!allowedGenders.has(payload.gender)) {
+    return badRequest('Invalid gender.', origin, env.ALLOWED_ORIGINS)
+  }
+  if (!allowedBloodTypes.has(payload.bloodType)) {
+    return badRequest('Invalid blood type.', origin, env.ALLOWED_ORIGINS)
+  }
+
+  const model = env.OPENAI_MODEL || 'gpt-5.2'
+  const effort = (env.OPENAI_REASONING_EFFORT || 'medium').toLowerCase()
+  const reasoningEffort =
+    effort === 'none' || effort === 'low' || effort === 'medium' || effort === 'high' || effort === 'xhigh'
+      ? effort
+      : 'medium'
+  const input = buildMessages(payload)
 
   const upstream = await fetch('https://api.openai.com/v1/responses', {
     method: 'POST',
@@ -149,22 +292,9 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
     },
     body: JSON.stringify({
       model,
-      input: [
-        {
-          role: 'system',
-          content: [
-            {
-              type: 'input_text',
-              text: lang === 'en' ? 'Be clear, practical, and grounded.' : '명확하고 실용적으로 답하세요.',
-            },
-          ],
-        },
-        {
-          role: 'user',
-          content: [{ type: 'input_text', text: prompt }],
-        },
-      ],
-      max_output_tokens: 1200,
+      reasoning: { effort: reasoningEffort },
+      input,
+      max_output_tokens: 1400,
     }),
   })
 
@@ -174,19 +304,21 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
       status: 502,
       headers: {
         ...corsHeaders,
+        ...buildCorsHeaders(origin, env.ALLOWED_ORIGINS),
         'content-type': 'application/json; charset=utf-8',
       },
     })
   }
 
-  const data = (await upstream.json()) as { output_text?: string }
-  const report = data.output_text?.trim()
+  const data = (await upstream.json()) as ResponsesApiResult
+  const report = extractOutputText(data)
 
   if (!report) {
     return new Response(JSON.stringify({ error: 'No report generated.' }), {
       status: 502,
       headers: {
         ...corsHeaders,
+        ...buildCorsHeaders(origin, env.ALLOWED_ORIGINS),
         'content-type': 'application/json; charset=utf-8',
       },
     })
@@ -196,6 +328,7 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
     status: 200,
     headers: {
       ...corsHeaders,
+      ...buildCorsHeaders(origin, env.ALLOWED_ORIGINS),
       'content-type': 'application/json; charset=utf-8',
     },
   })

@@ -134,10 +134,18 @@ function App() {
         body: JSON.stringify(payload),
       })
 
-      const data = (await response.json()) as ApiResponse
+      const rawText = await response.text()
+      let data: ApiResponse = {}
+      if (rawText) {
+        try {
+          data = JSON.parse(rawText) as ApiResponse
+        } catch {
+          throw new Error(rawText)
+        }
+      }
 
       if (!response.ok || !data.report) {
-        throw new Error(data.error || data.detail || 'Unknown error')
+        throw new Error(data.error || data.detail || rawText || 'Unknown error')
       }
 
       setReport(data.report)

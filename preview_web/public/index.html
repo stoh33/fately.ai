@@ -1,0 +1,249 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Streaming Preview</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --bg: #0f0f0d;
+        --panel: #171713;
+        --text: #f2f2ea;
+        --muted: #b8b8ab;
+        --accent: #ffb347;
+        --accent-2: #7dd3fc;
+        --border: #2c2c25;
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        font-family: "Noto Serif", "Nanum Myeongjo", "Apple SD Gothic Neo", serif;
+        background: radial-gradient(1200px 600px at 10% 10%, #2a1f0f 0%, #0f0f0d 60%);
+        color: var(--text);
+      }
+      .wrap {
+        max-width: 980px;
+        margin: 0 auto;
+        padding: 32px 20px 60px;
+      }
+      header {
+        margin-bottom: 24px;
+      }
+      h1 {
+        font-size: 28px;
+        font-weight: 700;
+        margin: 0 0 8px;
+        letter-spacing: 0.5px;
+      }
+      p {
+        margin: 0;
+        color: var(--muted);
+      }
+      .panel {
+        background: var(--panel);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 16px;
+        margin-top: 16px;
+      }
+      label {
+        display: block;
+        font-size: 13px;
+        color: var(--muted);
+        margin-bottom: 6px;
+      }
+      input, textarea {
+        width: 100%;
+        background: #0f0f0d;
+        color: var(--text);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        padding: 10px 12px;
+        font-size: 14px;
+      }
+      textarea { min-height: 120px; }
+      .row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 12px;
+      }
+      .actions {
+        display: flex;
+        gap: 10px;
+        margin-top: 12px;
+      }
+      button {
+        background: var(--accent);
+        color: #2b1a00;
+        border: none;
+        border-radius: 999px;
+        padding: 10px 16px;
+        font-weight: 700;
+        cursor: pointer;
+      }
+      button.secondary {
+        background: transparent;
+        color: var(--accent-2);
+        border: 1px solid var(--accent-2);
+      }
+      pre {
+        white-space: pre-wrap;
+        word-break: break-word;
+        margin: 0;
+        font-family: "Fira Mono", "D2Coding", monospace;
+        font-size: 13px;
+        line-height: 1.6;
+      }
+      .status {
+        margin-top: 10px;
+        font-size: 12px;
+        color: var(--muted);
+      }
+      @media (max-width: 720px) {
+        .row { grid-template-columns: 1fr; }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <header>
+        <h1>Streaming Preview</h1>
+        <p>OpenAI Responses API 스트리밍을 브라우저에서 미리보기</p>
+      </header>
+
+      <div class="panel">
+        <div class="row">
+          <div>
+            <label for="birth">출생 정보</label>
+            <input id="birth" value="1976년 5월 25일 17:00~19:00에 태어난 남자야." />
+          </div>
+          <div>
+            <label for="location">출생지</label>
+            <input id="location" value="경상북도 포항이야." />
+          </div>
+        </div>
+        <div class="row" style="margin-top: 12px;">
+          <div>
+            <label for="model">모델</label>
+            <input id="model" value="gpt-5.2" />
+          </div>
+          <div>
+            <label for="effort">Reasoning Effort</label>
+            <input id="effort" value="medium" />
+          </div>
+        </div>
+        <div class="actions">
+          <button id="run">스트리밍 시작</button>
+          <button id="clear" class="secondary">출력 지우기</button>
+        </div>
+        <div class="status" id="status">대기 중</div>
+      </div>
+
+      <div class="panel">
+        <pre id="output"></pre>
+      </div>
+    </div>
+
+    <script>
+      const output = document.getElementById("output");
+      const statusEl = document.getElementById("status");
+
+      function setStatus(text) {
+        statusEl.textContent = text;
+      }
+
+      function appendText(text) {
+        output.textContent += text;
+      }
+
+      function parseSSEChunk(chunk, onEvent) {
+        const parts = chunk.split("\n\n");
+        for (const part of parts) {
+          const lines = part.split("\n");
+          let data = "";
+          for (const line of lines) {
+            if (line.startsWith("data:")) {
+              data += line.slice(5).trim();
+            }
+          }
+          if (!data) continue;
+          if (data === "[DONE]") {
+            onEvent({ type: "done" });
+            continue;
+          }
+          try {
+            const json = JSON.parse(data);
+            onEvent(json);
+          } catch {
+            // ignore parse errors
+          }
+        }
+      }
+
+      document.getElementById("clear").addEventListener("click", () => {
+        output.textContent = "";
+        setStatus("출력 지움");
+      });
+
+      document.getElementById("run").addEventListener("click", async () => {
+        output.textContent = "";
+        setStatus("스트리밍 연결 중...");
+
+        const birthInfo = document.getElementById("birth").value.trim();
+        const location = document.getElementById("location").value.trim();
+        const model = document.getElementById("model").value.trim();
+        const effort = document.getElementById("effort").value.trim();
+
+        try {
+          const response = await fetch("/api/stream", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ birthInfo, location, model, effort }),
+          });
+
+          if (!response.ok) {
+            const errText = await response.text();
+            setStatus("에러: " + errText);
+            return;
+          }
+
+          setStatus("스트리밍 중...");
+
+          const reader = response.body.getReader();
+          const decoder = new TextDecoder("utf-8");
+          let buffer = "";
+
+          while (true) {
+            const { value, done } = await reader.read();
+            if (done) break;
+            buffer += decoder.decode(value, { stream: true });
+
+            const splitIndex = buffer.lastIndexOf("\n\n");
+            if (splitIndex !== -1) {
+              const chunk = buffer.slice(0, splitIndex + 2);
+              buffer = buffer.slice(splitIndex + 2);
+              parseSSEChunk(chunk, (event) => {
+                if (event.type === "response.output_text.delta") {
+                  appendText(event.delta);
+                }
+              });
+            }
+          }
+
+          if (buffer) {
+            parseSSEChunk(buffer, (event) => {
+              if (event.type === "response.output_text.delta") {
+                appendText(event.delta);
+              }
+            });
+          }
+
+          setStatus("완료");
+        } catch (err) {
+          setStatus("에러: " + err);
+        }
+      });
+    </script>
+  </body>
+</html>
