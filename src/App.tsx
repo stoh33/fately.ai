@@ -21,7 +21,7 @@ const hours = [
 
 const copy = {
   ko: {
-    title: 'AI기반 사주보기',
+    title: '오선생님의 AI기반 사주보기',
     subtitle: '사주는 세상과 처음으로 연결된 순간의 시간 정보입니다.',
     sectionTitle: '기본 정보',
     sectionHelp: '태어난 순간의 기운을 정확히 담아주세요.',
