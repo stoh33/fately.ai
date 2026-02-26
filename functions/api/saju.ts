@@ -27,19 +27,14 @@ type Env = {
   ALLOWED_ORIGINS?: string
 }
 
-type ResponseContentPart = {
-  type?: string
-  text?: string
+type ResponseChoice = {
+  message: {
+    content: string
+  }
 }
 
-type ResponseOutputItem = {
-  type?: string
-  content?: ResponseContentPart[]
-}
-
-type ResponsesApiResult = {
-  output?: ResponseOutputItem[]
-  output_text?: string
+type ChatCompletionResponse = {
+  choices?: ResponseChoice[]
 }
 
 const corsHeaders = {
@@ -112,31 +107,11 @@ function assertMaxLen(value: string, maxLen: number, field: string) {
   }
 }
 
-function extractOutputText(data: ResponsesApiResult) {
-  if (data.output_text && data.output_text.trim()) {
-    return data.output_text.trim()
-  }
-
-  const chunks: string[] = []
-  for (const item of data.output ?? []) {
-    for (const part of item.content ?? []) {
-      if (part.type === 'output_text' || part.type === 'text') {
-        if (part.text) {
-          chunks.push(part.text)
-        }
-      }
-    }
-  }
-
-  const joined = chunks.join('').trim()
-  return joined || null
-}
-
 function buildMessages(payload: Required<SajuPayload>) {
   if (payload.lang === 'en') {
     return [
       {
-        role: 'developer',
+        role: 'system',
         content:
           'You are a Korean saju (four pillars) consultant. Create an entertainment-only report in clear English. ' +
           'Keep it concise and practical. Do not claim certainty; include uncertainty language. ' +
@@ -162,7 +137,7 @@ function buildMessages(payload: Required<SajuPayload>) {
 
   return [
     {
-      role: 'developer',
+      role: 'system',
       content:
         '당신은 한국 전통 명리(사주) 상담가입니다. 오락용 참고 보고서를 한국어로 작성하세요. ' +
         '단정 표현을 피하고 가능성 중심으로 작성하세요. 과도한 공포/단정 금지. ' +
@@ -276,26 +251,33 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
     return badRequest('Invalid blood type.', origin, env.ALLOWED_ORIGINS)
   }
 
-  const model = env.OPENAI_MODEL || 'gpt-5.2'
+  const model = env.OPENAI_MODEL || 'gpt-4o'
   const effort = (env.OPENAI_REASONING_EFFORT || 'medium').toLowerCase()
   const reasoningEffort =
-    effort === 'none' || effort === 'low' || effort === 'medium' || effort === 'high' || effort === 'xhigh'
+    effort === 'low' || effort === 'medium' || effort === 'high'
       ? effort
       : 'medium'
-  const input = buildMessages(payload)
+  const messages = buildMessages(payload)
 
-  const upstream = await fetch('https://api.openai.com/v1/responses', {
+  const apiBody: any = {
+    model,
+    messages,
+  }
+
+  if (model.startsWith('o1') || model.startsWith('o3')) {
+    apiBody.max_completion_tokens = 2000
+    apiBody.reasoning_effort = reasoningEffort
+  } else {
+    apiBody.max_tokens = 2000
+  }
+
+  const upstream = await fetch('https://api.openai.com/v1/chat/completions', {
     method: 'POST',
     headers: {
       Authorization: `Bearer ${env.OPENAI_API_KEY}`,
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify({
-      model,
-      reasoning: { effort: reasoningEffort },
-      input,
-      max_output_tokens: 1400,
-    }),
+    body: JSON.stringify(apiBody),
   })
 
   if (!upstream.ok) {
@@ -310,8 +292,8 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
     })
   }
 
-  const data = (await upstream.json()) as ResponsesApiResult
-  const report = extractOutputText(data)
+  const data = (await upstream.json()) as ChatCompletionResponse
+  const report = data.choices?.[0]?.message?.content?.trim() || null
 
   if (!report) {
     return new Response(JSON.stringify({ error: 'No report generated.' }), {
