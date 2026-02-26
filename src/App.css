@@ -36,6 +36,32 @@
   animation: rise 0.8s ease forwards;
 }
 
+.lang-toggle {
+  display: inline-flex;
+  gap: 8px;
+  padding: 6px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.55);
+  width: fit-content;
+}
+
+.lang-toggle button {
+  border-radius: 999px;
+  padding: 8px 16px;
+  background: transparent;
+  color: var(--muted);
+  border: 1px solid transparent;
+  box-shadow: none;
+  font-weight: 600;
+}
+
+.lang-toggle button.active {
+  background: var(--accent);
+  color: #fff;
+  box-shadow: 0 10px 20px rgba(193, 87, 42, 0.25);
+}
+
 .eyebrow {
   text-transform: uppercase;
   letter-spacing: 0.28em;

@@ -1,3 +1,4 @@
+import { useMemo, useState } from 'react'
 import './App.css'
 
 const years = Array.from({ length: 127 }, (_, idx) => 1900 + idx)
@@ -18,59 +19,147 @@ const hours = [
   { value: '해', label: '해시 (21:00-23:00)' },
 ]
 
+const copy = {
+  ko: {
+    title: 'AI기반 사주보기',
+    subtitle: '사주는 세상과 처음으로 연결된 순간의 시간 정보입니다.',
+    sectionTitle: '기본 정보',
+    sectionHelp: '태어난 순간의 기운을 정확히 담아주세요.',
+    birthYear: '생년',
+    birthMonth: '월',
+    birthDay: '일',
+    birthHour: '시',
+    birthplace: '태어난 지역',
+    gender: '성별',
+    bloodType: '혈액형',
+    selectYear: '연도 선택',
+    selectMonth: '월 선택',
+    selectDay: '일 선택',
+    selectHour: '시간 선택',
+    selectGender: '성별 선택',
+    selectBlood: '혈액형 선택',
+    placePlaceholder: '예: 부산, 대한민국',
+    genderFemale: '여성',
+    genderMale: '남성',
+    genderOther: '기타',
+    bloodA: 'A형',
+    bloodB: 'B형',
+    bloodO: 'O형',
+    bloodAB: 'AB형',
+    cta: '사주 보기',
+    reset: '다시 입력',
+    helper: '입력한 정보는 사주 해석 목적 외에는 사용되지 않습니다.',
+    langKo: '한국어',
+    langEn: 'English',
+  },
+  en: {
+    title: 'AI Fortune Reading',
+    subtitle:
+      'Saju is the time information of the moment you first connected with the world.',
+    sectionTitle: 'Basic Details',
+    sectionHelp: 'Please enter the exact birth moment.',
+    birthYear: 'Year',
+    birthMonth: 'Month',
+    birthDay: 'Day',
+    birthHour: 'Hour',
+    birthplace: 'Birthplace',
+    gender: 'Gender',
+    bloodType: 'Blood Type',
+    selectYear: 'Select year',
+    selectMonth: 'Select month',
+    selectDay: 'Select day',
+    selectHour: 'Select hour',
+    selectGender: 'Select gender',
+    selectBlood: 'Select blood type',
+    placePlaceholder: 'e.g., Busan, South Korea',
+    genderFemale: 'Female',
+    genderMale: 'Male',
+    genderOther: 'Other',
+    bloodA: 'Type A',
+    bloodB: 'Type B',
+    bloodO: 'Type O',
+    bloodAB: 'Type AB',
+    cta: 'View Saju',
+    reset: 'Reset',
+    helper: 'Your information is used only for this reading.',
+    langKo: 'Korean',
+    langEn: 'English',
+  },
+}
+
 function App() {
+  const [lang, setLang] = useState<'ko' | 'en'>('ko')
+  const t = useMemo(() => copy[lang], [lang])
+
   return (
     <div className="app">
       <main className="layout">
         <section className="hero">
-          <h1>AI기반 사주보기</h1>
+          <div className="lang-toggle" role="group" aria-label="Language">
+            <button
+              type="button"
+              className={lang === 'ko' ? 'active' : ''}
+              onClick={() => setLang('ko')}
+            >
+              {t.langKo}
+            </button>
+            <button
+              type="button"
+              className={lang === 'en' ? 'active' : ''}
+              onClick={() => setLang('en')}
+            >
+              {t.langEn}
+            </button>
+          </div>
+          <h1>{t.title}</h1>
+          <p className="subhead">{t.subtitle}</p>
         </section>
 
         <section className="card">
           <header className="card-header">
-            <h2>기본 정보</h2>
-            <p>태어난 순간의 기운을 정확히 담아주세요.</p>
+            <h2>{t.sectionTitle}</h2>
+            <p>{t.sectionHelp}</p>
           </header>
 
           <form className="form">
             <div className="form-grid date-grid">
               <label className="field">
-                <span>생년</span>
+                <span>{t.birthYear}</span>
                 <select name="birthYear" defaultValue="">
                   <option value="" disabled>
-                    연도 선택
+                    {t.selectYear}
                   </option>
                   {years.map((year) => (
                     <option key={year} value={year}>
-                      {year}년
+                      {lang === 'ko' ? `${year}년` : year}
                     </option>
                   ))}
                 </select>
               </label>
 
               <label className="field">
-                <span>월</span>
+                <span>{t.birthMonth}</span>
                 <select name="birthMonth" defaultValue="">
                   <option value="" disabled>
-                    월 선택
+                    {t.selectMonth}
                   </option>
                   {months.map((month) => (
                     <option key={month} value={month}>
-                      {month}월
+                      {lang === 'ko' ? `${month}월` : month}
                     </option>
                   ))}
                 </select>
               </label>
 
               <label className="field">
-                <span>일</span>
+                <span>{t.birthDay}</span>
                 <select name="birthDay" defaultValue="">
                   <option value="" disabled>
-                    일 선택
+                    {t.selectDay}
                   </option>
                   {days.map((day) => (
                     <option key={day} value={day}>
-                      {day}일
+                      {lang === 'ko' ? `${day}일` : day}
                     </option>
                   ))}
                 </select>
@@ -79,10 +168,10 @@ function App() {
 
             <div className="form-grid time-place-grid">
               <label className="field">
-                <span>시</span>
+                <span>{t.birthHour}</span>
                 <select name="birthHour" defaultValue="">
                   <option value="" disabled>
-                    시간 선택
+                    {t.selectHour}
                   </option>
                   {hours.map((hour) => (
                     <option key={hour.value} value={hour.value}>
@@ -93,54 +182,52 @@ function App() {
               </label>
 
               <label className="field">
-                <span>태어난 지역</span>
+                <span>{t.birthplace}</span>
                 <input
                   type="text"
                   name="birthplace"
-                  placeholder="예: 부산, 대한민국"
+                  placeholder={t.placePlaceholder}
                 />
               </label>
             </div>
 
             <div className="inline-group">
               <label className="field">
-                <span>성별</span>
+                <span>{t.gender}</span>
                 <select name="gender" defaultValue="">
                   <option value="" disabled>
-                    성별 선택
+                    {t.selectGender}
                   </option>
-                  <option value="female">여성</option>
-                  <option value="male">남성</option>
-                  <option value="other">기타</option>
+                  <option value="female">{t.genderFemale}</option>
+                  <option value="male">{t.genderMale}</option>
+                  <option value="other">{t.genderOther}</option>
                 </select>
               </label>
 
               <label className="field">
-                <span>혈액형</span>
+                <span>{t.bloodType}</span>
                 <select name="bloodType" defaultValue="">
                   <option value="" disabled>
-                    혈액형 선택
+                    {t.selectBlood}
                   </option>
-                  <option value="A">A형</option>
-                  <option value="B">B형</option>
-                  <option value="O">O형</option>
-                  <option value="AB">AB형</option>
+                  <option value="A">{t.bloodA}</option>
+                  <option value="B">{t.bloodB}</option>
+                  <option value="O">{t.bloodO}</option>
+                  <option value="AB">{t.bloodAB}</option>
                 </select>
               </label>
             </div>
 
             <div className="actions">
               <button type="submit" className="primary">
-                사주 보기
+                {t.cta}
               </button>
               <button type="button" className="ghost">
-                다시 입력
+                {t.reset}
               </button>
             </div>
 
-            <p className="helper">
-              입력한 정보는 사주 해석 목적 외에는 사용되지 않습니다.
-            </p>
+            <p className="helper">{t.helper}</p>
           </form>
         </section>
       </main>
