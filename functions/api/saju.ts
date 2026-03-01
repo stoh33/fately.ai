@@ -370,7 +370,7 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
     return badRequest('Invalid blood type.', origin, env.ALLOWED_ORIGINS)
   }
 
-  const model = env.OPENAI_MODEL || 'gpt-4o'
+  const model = env.OPENAI_MODEL || 'gpt-4.1-mini'
   const effort = (env.OPENAI_REASONING_EFFORT || 'medium').toLowerCase()
   const reasoningEffort =
     effort === 'low' || effort === 'medium' || effort === 'high'
