@@ -10,6 +10,9 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "dompurify": "^3.2.6",
+    "html2canvas": "^1.4.1",
+    "marked": "^15.0.12",
     "react": "^19.2.0",
     "react-dom": "^19.2.0"
   },

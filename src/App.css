@@ -1,21 +1,24 @@
 :root {
-  --bg: #f5efe6;
-  --bg-accent: #efe2d4;
-  --ink: #1e1c17;
-  --muted: #6d5f51;
-  --card: #fffaf3;
-  --border: rgba(30, 28, 23, 0.12);
-  --accent: #c1572a;
-  --accent-dark: #9a421f;
-  --shadow: 0 24px 60px rgba(38, 29, 20, 0.15);
+  --bg: #0f1b2d;
+  --bg-accent: #0b1322;
+  --ink: #f3efe7;
+  --muted: #b5b1a9;
+  --card: rgba(19, 31, 49, 0.92);
+  --border: rgba(201, 168, 76, 0.25);
+  --accent: #c9a84c;
+  --accent-dark: #a78a3f;
+  --jade: #5fb8a5;
+  --shadow: 0 24px 60px rgba(5, 10, 18, 0.4);
+  --panel: rgba(12, 20, 34, 0.9);
+  --panel-strong: rgba(8, 14, 26, 0.95);
 }
 
 .app {
   min-height: 100vh;
   background:
-    radial-gradient(circle at 10% 10%, rgba(255, 246, 234, 0.7), transparent 45%),
-    radial-gradient(circle at 90% 20%, rgba(231, 205, 175, 0.6), transparent 35%),
-    linear-gradient(120deg, var(--bg), var(--bg-accent));
+    radial-gradient(circle at 15% 10%, rgba(95, 184, 165, 0.2), transparent 45%),
+    radial-gradient(circle at 80% 20%, rgba(201, 168, 76, 0.18), transparent 40%),
+    linear-gradient(140deg, var(--bg), var(--bg-accent));
   color: var(--ink);
 }
 
@@ -42,7 +45,7 @@
   padding: 6px;
   border-radius: 999px;
   border: 1px solid var(--border);
-  background: rgba(255, 255, 255, 0.55);
+  background: rgba(10, 18, 30, 0.6);
   width: fit-content;
 }
 
@@ -58,7 +61,7 @@
 
 .lang-toggle button.active {
   background: var(--accent);
-  color: #fff;
+  color: #131e2f;
   box-shadow: 0 10px 20px rgba(193, 87, 42, 0.25);
 }
 
@@ -156,7 +159,8 @@
   padding: 12px 14px;
   border-radius: 14px;
   border: 1px solid var(--border);
-  background: #fff;
+  background: var(--panel-strong);
+  color: var(--ink);
   font-size: 0.95rem;
   font-family: "Noto Sans KR", sans-serif;
   transition: border 0.2s ease, box-shadow 0.2s ease;
@@ -201,7 +205,7 @@ button:active {
 
 .primary {
   background: var(--accent);
-  color: #fff;
+  color: #101623;
   box-shadow: 0 12px 24px rgba(193, 87, 42, 0.25);
 }
 
@@ -211,8 +215,8 @@ button:active {
 
 .ghost {
   background: transparent;
-  color: var(--accent-dark);
-  border-color: rgba(154, 66, 31, 0.35);
+  color: var(--accent);
+  border-color: rgba(201, 168, 76, 0.35);
 }
 
 .helper {
@@ -245,6 +249,14 @@ button:active {
   .inline-group {
     grid-template-columns: 1fr;
   }
+
+  .chart-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .pillars-row {
+    grid-template-columns: 50px repeat(4, minmax(0, 1fr));
+  }
 }
 
 .primary:disabled {
@@ -257,7 +269,7 @@ button:active {
   border: 1px solid var(--border);
   border-radius: 14px;
   padding: 16px;
-  background: #fff;
+  background: var(--panel);
   display: grid;
   gap: 10px;
 }
@@ -278,10 +290,358 @@ button:active {
 
 .error-box {
   border-color: rgba(154, 66, 31, 0.4);
-  background: rgba(193, 87, 42, 0.08);
+  background: rgba(193, 87, 42, 0.12);
 }
 
 .error-box p {
   margin: 0;
   color: var(--accent-dark);
+}
+
+.json-error {
+  margin: 0;
+  color: #f3c27a;
+  font-size: 0.9rem;
+}
+
+.chart-wrap {
+  display: grid;
+  gap: 14px;
+  padding: 16px;
+  border-radius: 16px;
+  background: rgba(8, 14, 26, 0.85);
+  border: 1px solid rgba(201, 168, 76, 0.25);
+}
+
+.chart-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.chart-head h4 {
+  margin: 0;
+  font-size: 1.05rem;
+  font-family: "Noto Serif KR", serif;
+  color: var(--accent);
+}
+
+.chart-grid {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+
+.chart-card {
+  background: rgba(12, 20, 34, 0.95);
+  border-radius: 16px;
+  border: 1px solid rgba(201, 168, 76, 0.2);
+  padding: 16px;
+  display: grid;
+  gap: 12px;
+}
+
+.chart-card h5 {
+  margin: 0;
+  font-size: 0.95rem;
+  color: var(--jade);
+  font-family: "Noto Serif KR", serif;
+}
+
+.chart-hint {
+  margin: 0;
+  font-size: 0.78rem;
+  color: var(--muted);
+}
+
+.pillars-table {
+  display: grid;
+  gap: 6px;
+  font-size: 0.88rem;
+}
+
+.pillars-row {
+  display: grid;
+  grid-template-columns: 60px repeat(4, minmax(0, 1fr));
+  gap: 6px;
+  align-items: center;
+}
+
+.pillars-row.head {
+  color: var(--muted);
+  font-weight: 600;
+}
+
+.pillars-row span {
+  text-align: center;
+}
+
+.pillars-row .label {
+  text-align: left;
+  color: var(--muted);
+  font-weight: 600;
+}
+
+.pillars-row .cell {
+  padding: 8px 6px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  font-family: "Noto Serif KR", serif;
+}
+
+.pillars-row .cell.subtle {
+  opacity: 0.75;
+}
+
+.wood {
+  background: rgba(95, 184, 105, 0.25);
+  color: #baf0c9;
+}
+
+.fire {
+  background: rgba(212, 91, 91, 0.25);
+  color: #f7c1b5;
+}
+
+.earth {
+  background: rgba(201, 168, 76, 0.25);
+  color: #f2dea2;
+}
+
+.metal {
+  background: rgba(199, 203, 209, 0.2);
+  color: #e0e4ea;
+}
+
+.water {
+  background: rgba(79, 143, 216, 0.25);
+  color: #bfdcff;
+}
+
+.radar {
+  width: 100%;
+  height: auto;
+}
+
+.radar-grid {
+  fill: rgba(95, 184, 165, 0.08);
+  stroke: rgba(95, 184, 165, 0.35);
+  stroke-width: 1;
+}
+
+.radar-axis {
+  stroke: rgba(255, 255, 255, 0.12);
+  stroke-width: 1;
+}
+
+.radar-axis.yongsin {
+  stroke: #c9a84c;
+  stroke-width: 2;
+}
+
+.radar-axis.gisin {
+  stroke: rgba(201, 168, 76, 0.5);
+  stroke-dasharray: 4 4;
+}
+
+.radar-label {
+  fill: var(--muted);
+  font-size: 10px;
+  text-anchor: middle;
+  dominant-baseline: middle;
+}
+
+.radar-area {
+  fill: rgba(201, 168, 76, 0.3);
+  stroke: rgba(201, 168, 76, 0.8);
+  stroke-width: 1.5;
+}
+
+.radar-legend {
+  display: grid;
+  gap: 6px;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+
+.legend-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  margin-right: 6px;
+  display: inline-block;
+}
+
+.legend-item span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.timeline {
+  display: grid;
+  gap: 8px;
+}
+
+.timeline-item {
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.04);
+  display: grid;
+  gap: 4px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.timeline-item.current {
+  border-color: rgba(201, 168, 76, 0.6);
+  box-shadow: 0 0 0 2px rgba(201, 168, 76, 0.15);
+}
+
+.timeline-item .age {
+  font-weight: 600;
+  color: var(--accent);
+}
+
+.timeline-item .ganji {
+  font-family: "Noto Serif KR", serif;
+}
+
+.timeline-item .badge {
+  font-size: 0.75rem;
+  color: #101623;
+  background: var(--accent);
+  padding: 2px 8px;
+  border-radius: 999px;
+  width: fit-content;
+}
+
+.season-graph {
+  padding: 8px 0;
+}
+
+.season-block {
+  opacity: 0.18;
+}
+
+.season-block.spring {
+  fill: rgba(95, 184, 165, 0.5);
+}
+
+.season-block.summer {
+  fill: rgba(201, 168, 76, 0.5);
+}
+
+.season-block.autumn {
+  fill: rgba(143, 166, 179, 0.5);
+}
+
+.season-block.winter {
+  fill: rgba(68, 85, 110, 0.5);
+}
+
+.age-line {
+  stroke: #f2dea2;
+  stroke-width: 2;
+  stroke-dasharray: 4 4;
+}
+
+.season-label {
+  fill: var(--muted);
+  font-size: 10px;
+}
+
+.season-note {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+.report-markdown {
+  background: rgba(8, 14, 26, 0.65);
+  padding: 14px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.markdown-body h2,
+.markdown-body h3,
+.markdown-body h4 {
+  margin: 18px 0 8px;
+  font-family: "Noto Serif KR", serif;
+  color: var(--accent);
+}
+
+.markdown-body h2:first-child {
+  margin-top: 0;
+}
+
+.markdown-body p {
+  margin: 0 0 10px;
+  color: var(--ink);
+}
+
+.markdown-body ul,
+.markdown-body ol {
+  margin: 0 0 12px 18px;
+  padding: 0;
+  color: var(--ink);
+}
+
+.markdown-body li {
+  margin-bottom: 6px;
+}
+
+.markdown-body table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 12px 0;
+  font-size: 0.95rem;
+}
+
+.markdown-body th,
+.markdown-body td {
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  padding: 8px 10px;
+  text-align: left;
+}
+
+.markdown-body th {
+  background: rgba(201, 168, 76, 0.18);
+  color: #f2dea2;
+}
+
+.markdown-body code {
+  background: rgba(95, 184, 165, 0.15);
+  color: #cfe9e3;
+  padding: 2px 6px;
+  border-radius: 6px;
+  font-family: "Noto Serif KR", serif;
+  font-size: 0.92rem;
+}
+
+.markdown-body pre {
+  background: rgba(8, 14, 26, 0.85);
+  padding: 12px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  overflow: auto;
+}
+
+.markdown-body pre code {
+  background: transparent;
+  padding: 0;
+  color: var(--ink);
+  font-family: "Noto Serif KR", serif;
+  font-size: 0.92rem;
+}
+
+.markdown-body strong {
+  color: #f2dea2;
 }
