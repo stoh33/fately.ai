@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import './SajuPage.css'
+import '../styles/saju-page.css'
 
 type FocusType = 'career' | 'wealth' | 'relationship' | 'health' | 'general'
 type BloodType = 'A' | 'B' | 'O' | 'AB' | 'unknown'

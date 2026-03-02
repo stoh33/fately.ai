@@ -2,7 +2,7 @@ import { useMemo, useRef, useState } from 'react'
 import html2canvas from 'html2canvas'
 import DOMPurify from 'dompurify'
 import { marked } from 'marked'
-import './App.css'
+import '../styles/app.css'
 
 const heroPhotoUrl =
   'https://images.unsplash.com/photo-1532968961962-8a0cb3a2d4f5?auto=format&fit=crop&fm=jpg&q=80&w=1600'
