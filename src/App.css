@@ -529,6 +529,25 @@ button:active {
   gap: 6px;
 }
 
+.element-counts {
+  display: grid;
+  gap: 8px;
+}
+
+.element-count-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid rgba(126, 95, 62, 0.2);
+  font-weight: 600;
+}
+
+.element-count-item strong {
+  font-size: 1rem;
+}
+
 .legend-item {
   display: flex;
   align-items: center;
@@ -627,6 +646,17 @@ button:active {
   margin: 0;
   font-size: 0.85rem;
   color: var(--muted);
+}
+
+.ten-gods-grid {
+  display: grid;
+  gap: 8px;
+}
+
+.ten-gods-grid p {
+  margin: 0;
+  font-size: 0.86rem;
+  line-height: 1.45;
 }
 
 .report-markdown {

@@ -178,6 +178,60 @@ const elementClassMap: Record<string, string> = {
   수: 'water',
 }
 
+const ganKoToHanja: Record<string, string> = {
+  갑: '甲',
+  을: '乙',
+  병: '丙',
+  정: '丁',
+  무: '戊',
+  기: '己',
+  경: '庚',
+  신: '辛',
+  임: '壬',
+  계: '癸',
+}
+
+const jiKoToHanja: Record<string, string> = {
+  자: '子',
+  축: '丑',
+  인: '寅',
+  묘: '卯',
+  진: '辰',
+  사: '巳',
+  오: '午',
+  미: '未',
+  신: '申',
+  유: '酉',
+  술: '戌',
+  해: '亥',
+}
+
+const ganHanjaToKo = Object.fromEntries(
+  Object.entries(ganKoToHanja).map(([ko, hanja]) => [hanja, ko]),
+) as Record<string, string>
+const jiHanjaToKo = Object.fromEntries(
+  Object.entries(jiKoToHanja).map(([ko, hanja]) => [hanja, ko]),
+) as Record<string, string>
+
+const formatGan = (value: string) => {
+  if (!value || value === '-') return '-'
+  if (value.includes('(')) return value
+  if (ganKoToHanja[value]) return `${value}(${ganKoToHanja[value]})`
+  if (ganHanjaToKo[value]) return `${ganHanjaToKo[value]}(${value})`
+  return value
+}
+
+const formatJi = (value: string) => {
+  if (!value || value === '-') return '-'
+  if (value.includes('(')) return value
+  if (jiKoToHanja[value]) return `${value}(${jiKoToHanja[value]})`
+  if (jiHanjaToKo[value]) return `${jiHanjaToKo[value]}(${value})`
+  return value
+}
+
+const dayGanOrder = ['갑', '을', '병', '정', '무', '기', '경', '신', '임', '계']
+const dayJiOrder = ['자', '축', '인', '묘', '진', '사', '오', '미', '신', '유', '술', '해']
+
 const parseReport = (rawReport: string) => {
   if (!rawReport) {
     return { markdown: '', data: null as SajuChartData | null, jsonError: '' }
@@ -366,8 +420,6 @@ function App() {
   }
 
   const elementValues = chartData ? normalizeElements(chartData.fiveElements || {}) : null
-  const yongsinKey = chartData ? normalizeElementKey(chartData.yongsin) : null
-  const gisinKey = chartData ? normalizeElementKey(chartData.gisin) : null
   const displayLabels = lang === 'ko' ? elementLabels : elementLabelsEn
 
   const seasonRanges = useMemo(() => {
@@ -423,20 +475,26 @@ function App() {
       ? {
           title: '사주 분석표',
           pillars: '사주팔자 원국표',
-          radar: '오행 레이더',
+          elements: '오행 수치',
           timeline: '대운 타임라인',
           season: '인생 사계절 그래프',
           seasonNow: '현재 국면',
           ageNow: '현재 나이',
+          seasonMeaning:
+            '사계절 그래프는 연령대별 기운 흐름(성장-확장-수확-정리)을 보여주는 참고 지표입니다.',
+          tenGods: '십신(十神) 다섯 분류 의미',
         }
       : {
           title: 'Saju Chart',
           pillars: 'Four Pillars Grid',
-          radar: 'Five Elements Radar',
+          elements: 'Five Elements Scores',
           timeline: 'Major Cycle Timeline',
           season: 'Life Seasons Curve',
           seasonNow: 'Current phase',
           ageNow: 'Current age',
+          seasonMeaning:
+            'This seasonal curve is a reference map of life-energy phases by age bands.',
+          tenGods: 'Ten-Gods Groups Meaning',
         }
 
   const seasonLabelX = {
@@ -458,22 +516,23 @@ function App() {
       2,
   }
 
-  const radarPoints = useMemo(() => {
-    if (!elementValues) return ''
-    const values = elementOrder.map((key) => elementValues[key] ?? 0)
-    const max = Math.max(...values, 1)
-    const radius = 80
-    const center = { x: 120, y: 110 }
-    return values
-      .map((value, idx) => {
-        const ratio = value / max
-        const angle = (Math.PI * 2 * idx) / values.length - Math.PI / 2
-        const x = center.x + Math.cos(angle) * radius * ratio
-        const y = center.y + Math.sin(angle) * radius * ratio
-        return `${x.toFixed(1)},${y.toFixed(1)}`
-      })
-      .join(' ')
-  }, [elementValues])
+  const stableDaewoon = useMemo(() => {
+    const birthYear = Number(lastPayload?.birthYear)
+    if (!Number.isFinite(birthYear)) {
+      return chartData?.daewoon || []
+    }
+    const startAge = 7
+    const baseCycleIndex = ((birthYear - 4) % 60 + 60) % 60
+    return Array.from({ length: 8 }, (_, idx) => {
+      const cycle = baseCycleIndex + idx + 1
+      const gan = dayGanOrder[cycle % 10]
+      const ji = dayJiOrder[cycle % 12]
+      const age = startAge + idx * 10
+      const isCurrent =
+        typeof currentAge === 'number' && currentAge >= age && currentAge < age + 10
+      return { age, gan: formatGan(gan), ji: formatJi(ji), current: isCurrent }
+    })
+  }, [chartData?.daewoon, currentAge, lastPayload?.birthYear])
 
   return (
     <div className="app">
@@ -684,7 +743,7 @@ function App() {
                                   elementClassMap[safePillars[key]?.element] || ''
                                 }`}
                               >
-                                {safePillars[key]?.gan || '-'}
+                                {formatGan(safePillars[key]?.gan || '-')}
                               </span>
                             ))}
                           </div>
@@ -697,7 +756,7 @@ function App() {
                                   elementClassMap[safePillars[key]?.element] || ''
                                 }`}
                               >
-                                {safePillars[key]?.ji || '-'}
+                                {formatJi(safePillars[key]?.ji || '-')}
                               </span>
                             ))}
                           </div>
@@ -711,7 +770,7 @@ function App() {
                                 }`}
                               >
                                 {safePillars[key]?.hidden?.length
-                                  ? safePillars[key].hidden.join(', ')
+                                  ? safePillars[key].hidden.map((item) => formatGan(item)).join(', ')
                                   : displayLabels[normalizeElementKey(safePillars[key]?.element) || 'Wood']}
                               </span>
                             ))}
@@ -720,41 +779,10 @@ function App() {
                       </article>
 
                       <article className="chart-card">
-                        <h5>{chartCopy.radar}</h5>
-                        <svg viewBox="0 0 240 220" className="radar">
-                          <polygon
-                            points="120,30 195,75 175,165 65,165 45,75"
-                            className="radar-grid"
-                          />
-                          {elementOrder.map((key, idx) => {
-                            const angle = (Math.PI * 2 * idx) / elementOrder.length - Math.PI / 2
-                            const x = 120 + Math.cos(angle) * 85
-                            const y = 110 + Math.sin(angle) * 85
-                            const isYong = yongsinKey === key
-                            const isGi = gisinKey === key
-                            return (
-                              <g key={`axis-${key}`}>
-                                <line
-                                  x1="120"
-                                  y1="110"
-                                  x2={x}
-                                  y2={y}
-                                  className={`radar-axis ${isYong ? 'yongsin' : ''} ${
-                                    isGi ? 'gisin' : ''
-                                  }`}
-                                />
-                                <text x={x} y={y} className="radar-label">
-                                  {displayLabels[key]}
-                                </text>
-                              </g>
-                            )
-                          })}
-                          <polygon points={radarPoints} className="radar-area" />
-                        </svg>
-                        <div className="radar-legend">
+                        <h5>{chartCopy.elements}</h5>
+                        <div className="element-counts">
                           {elementOrder.map((key) => (
-                            <div key={`legend-${key}`} className="legend-item">
-                              <span className={`legend-dot ${elementClassMap[key]}`} />
+                            <div key={`count-${key}`} className={`element-count-item ${elementClassMap[key]}`}>
                               <span>{displayLabels[key]}</span>
                               <strong>{elementValues?.[key] ?? 0}</strong>
                             </div>
@@ -764,8 +792,13 @@ function App() {
 
                       <article className="chart-card">
                         <h5>{chartCopy.timeline}</h5>
+                        <p className="chart-hint">
+                          {lang === 'ko'
+                            ? '대운은 출생연 기준 간지 순환 규칙으로 고정 계산되어 동일 입력에서 동일하게 표시됩니다.'
+                            : 'Major cycles are fixed by a deterministic stem-branch cycle rule from birth year.'}
+                        </p>
                         <div className="timeline">
-                          {(chartData.daewoon || []).map((item, idx) => (
+                          {stableDaewoon.map((item, idx) => (
                             <div
                               key={`daewoon-${idx}`}
                               className={`timeline-item ${item.current ? 'current' : ''}`}
@@ -865,6 +898,28 @@ function App() {
                           {chartCopy.seasonNow}: {chartData.lifeSeason || '-'} / {chartCopy.ageNow}:{' '}
                           {currentAge ?? '-'}
                         </p>
+                        <p className="season-note">{chartCopy.seasonMeaning}</p>
+                      </article>
+
+                      <article className="chart-card">
+                        <h5>{chartCopy.tenGods}</h5>
+                        <div className="ten-gods-grid">
+                          <p>
+                            <strong>비겁(比劫)</strong>: 자아, 주도성, 경쟁/협력 방식
+                          </p>
+                          <p>
+                            <strong>식상(食傷)</strong>: 표현력, 실행력, 결과물 생산 방식
+                          </p>
+                          <p>
+                            <strong>재성(財星)</strong>: 자원 운영, 실리 판단, 재무 태도
+                          </p>
+                          <p>
+                            <strong>관성(官星)</strong>: 책임감, 규범 수용, 조직 적응력
+                          </p>
+                          <p>
+                            <strong>인성(印星)</strong>: 학습력, 보호 본능, 회복/내면 안정
+                          </p>
+                        </div>
                       </article>
                     </div>
                   </div>
