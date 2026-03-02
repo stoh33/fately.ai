@@ -2,6 +2,7 @@ import { useMemo, useRef, useState } from 'react'
 import html2canvas from 'html2canvas'
 import DOMPurify from 'dompurify'
 import { marked } from 'marked'
+import heroConstellation from './assets/hero-constellation.svg'
 import './App.css'
 
 const years = Array.from({ length: 127 }, (_, idx) => 1900 + idx)
@@ -24,8 +25,9 @@ const hours = [
 
 const copy = {
   ko: {
-    title: '오선생님의 AI기반 사주보기',
-    subtitle: '사주는 세상과 처음으로 연결된 순간의 시간 정보입니다.',
+    title: '오선생님의 사주보기',
+    subtitle: '',
+    subtitleExtra: '',
     sectionTitle: '기본 정보',
     sectionHelp: '태어난 순간의 기운을 정확히 담아주세요.',
     birthYear: '생년',
@@ -60,9 +62,9 @@ const copy = {
     langEn: 'English',
   },
   en: {
-    title: 'AI Fortune Reading',
-    subtitle:
-      'Saju is the time information of the moment you first connected with the world.',
+    title: "Master Oh's Saju Reading",
+    subtitle: '',
+    subtitleExtra: '',
     sectionTitle: 'Basic Details',
     sectionHelp: 'Please enter the exact birth moment.',
     birthYear: 'Year',
@@ -481,6 +483,18 @@ function App() {
           </div>
           <h1>{t.title}</h1>
           <p className="subhead">{t.subtitle}</p>
+          <p className="subhead">{t.subtitleExtra}</p>
+          <figure className="hero-visual">
+            <img
+              src={heroConstellation}
+              alt={
+                lang === 'ko'
+                  ? '사주, 별자리, 혈액형, 골프 스타일을 통합한 상징 이미지'
+                  : 'Integrated visual of Saju, zodiac, blood type, and golf style'
+              }
+              loading="eager"
+            />
+          </figure>
         </section>
 
         <section className="card">

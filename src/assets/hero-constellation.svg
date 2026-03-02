@@ -1,0 +1,103 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 900" role="img" aria-labelledby="title desc">
+  <title id="title">Saju Integrated Insight Visual</title>
+  <desc id="desc">A combined visual for Saju, zodiac, blood type and golf style.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#071222"/>
+      <stop offset="55%" stop-color="#10233f"/>
+      <stop offset="100%" stop-color="#1b3559"/>
+    </linearGradient>
+    <radialGradient id="haloA" cx="22%" cy="18%" r="35%">
+      <stop offset="0%" stop-color="#5fb8a5" stop-opacity="0.26"/>
+      <stop offset="100%" stop-color="#5fb8a5" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="haloB" cx="82%" cy="22%" r="35%">
+      <stop offset="0%" stop-color="#c9a84c" stop-opacity="0.34"/>
+      <stop offset="100%" stop-color="#c9a84c" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="glow" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="4" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+
+  <rect width="1600" height="900" fill="url(#bg)"/>
+  <rect width="1600" height="900" fill="url(#haloA)"/>
+  <rect width="1600" height="900" fill="url(#haloB)"/>
+
+  <g opacity="0.65" fill="#e9f4ff" filter="url(#glow)">
+    <circle cx="130" cy="94" r="2"/><circle cx="214" cy="210" r="1.8"/><circle cx="298" cy="135" r="1.9"/>
+    <circle cx="410" cy="302" r="1.7"/><circle cx="540" cy="188" r="2"/><circle cx="672" cy="110" r="1.8"/>
+    <circle cx="822" cy="254" r="2"/><circle cx="945" cy="148" r="1.9"/><circle cx="1066" cy="310" r="1.8"/>
+    <circle cx="1192" cy="122" r="2"/><circle cx="1328" cy="236" r="1.8"/><circle cx="1470" cy="174" r="2"/>
+    <circle cx="180" cy="760" r="1.9"/><circle cx="326" cy="688" r="2"/><circle cx="502" cy="806" r="1.8"/>
+    <circle cx="670" cy="736" r="2"/><circle cx="860" cy="810" r="1.9"/><circle cx="1054" cy="714" r="2"/>
+    <circle cx="1240" cy="804" r="1.8"/><circle cx="1408" cy="724" r="2"/>
+  </g>
+
+  <g transform="translate(800 450)">
+    <circle r="265" fill="none" stroke="#c9a84c" stroke-opacity="0.34" stroke-width="2"/>
+    <circle r="220" fill="none" stroke="#c9a84c" stroke-opacity="0.2" stroke-width="1.5"/>
+    <g stroke="#d8c287" stroke-opacity="0.48" stroke-width="1.4">
+      <line x1="0" y1="-265" x2="0" y2="-220"/>
+      <line x1="132.5" y1="-229.5" x2="110" y2="-190"/>
+      <line x1="229.5" y1="-132.5" x2="190" y2="-110"/>
+      <line x1="265" y1="0" x2="220" y2="0"/>
+      <line x1="229.5" y1="132.5" x2="190" y2="110"/>
+      <line x1="132.5" y1="229.5" x2="110" y2="190"/>
+      <line x1="0" y1="265" x2="0" y2="220"/>
+      <line x1="-132.5" y1="229.5" x2="-110" y2="190"/>
+      <line x1="-229.5" y1="132.5" x2="-190" y2="110"/>
+      <line x1="-265" y1="0" x2="-220" y2="0"/>
+      <line x1="-229.5" y1="-132.5" x2="-190" y2="-110"/>
+      <line x1="-132.5" y1="-229.5" x2="-110" y2="-190"/>
+    </g>
+
+    <circle r="162" fill="rgba(8,18,34,0.78)" stroke="#d7c38d" stroke-opacity="0.6" stroke-width="2"/>
+    <g stroke="#8fc6ff" stroke-opacity="0.32" stroke-width="1">
+      <line x1="-162" y1="0" x2="162" y2="0"/>
+      <line x1="0" y1="-162" x2="0" y2="162"/>
+      <line x1="-114.5" y1="-114.5" x2="114.5" y2="114.5"/>
+      <line x1="-114.5" y1="114.5" x2="114.5" y2="-114.5"/>
+    </g>
+
+    <g fill="#e5c57a" font-family="Noto Sans KR, sans-serif" font-size="24" font-weight="700" text-anchor="middle">
+      <text x="0" y="-118">목</text>
+      <text x="112" y="-28">화</text>
+      <text x="70" y="108">토</text>
+      <text x="-70" y="108">금</text>
+      <text x="-112" y="-28">수</text>
+    </g>
+  </g>
+
+  <g transform="translate(290 450)">
+    <rect x="-120" y="-185" width="240" height="370" rx="22" fill="rgba(7,16,30,0.72)" stroke="#5fb8a5" stroke-opacity="0.52"/>
+    <text x="0" y="-140" fill="#e9f4ff" font-family="Noto Sans KR, sans-serif" font-size="26" font-weight="700" text-anchor="middle">혈액형</text>
+    <g fill="#f3fafc" font-family="Noto Sans KR, sans-serif" font-size="44" font-weight="800" text-anchor="middle">
+      <text x="0" y="-62">A   B</text>
+      <text x="0" y="12">O  AB</text>
+    </g>
+    <path d="M-40 62 C-40 24 40 24 40 62 C40 98 0 126 0 154 C0 126 -40 98 -40 62 Z" fill="#f1717e" opacity="0.92"/>
+  </g>
+
+  <g transform="translate(1315 472)">
+    <rect x="-160" y="-206" width="320" height="412" rx="24" fill="rgba(7,16,30,0.68)" stroke="#5fb8a5" stroke-opacity="0.58"/>
+    <text x="0" y="-156" fill="#e9f4ff" font-family="Noto Sans KR, sans-serif" font-size="26" font-weight="700" text-anchor="middle">Golf Style</text>
+    <path d="M-100 112 Q-12 22 62 90" stroke="#5fb8a5" stroke-width="8" stroke-linecap="round" fill="none"/>
+    <circle cx="82" cy="86" r="12" fill="#f6fbff"/>
+    <path d="M90 28 Q38 -74 -42 -46 Q-98 -28 -104 34" stroke="#c9a84c" stroke-width="4" stroke-dasharray="8 10" fill="none"/>
+    <g fill="#5fb8a5" opacity="0.88">
+      <circle cx="-88" cy="134" r="3"/><circle cx="-64" cy="150" r="3"/><circle cx="-40" cy="138" r="3"/>
+      <circle cx="-14" cy="154" r="3"/><circle cx="8" cy="140" r="3"/><circle cx="32" cy="154" r="3"/>
+      <circle cx="56" cy="142" r="3"/>
+    </g>
+  </g>
+
+  <g stroke="#ccb779" stroke-opacity="0.52" stroke-width="1.8" fill="none">
+    <path d="M472 450 C560 405 618 396 646 402"/>
+    <path d="M954 404 C1026 390 1096 390 1154 430"/>
+  </g>
+</svg>

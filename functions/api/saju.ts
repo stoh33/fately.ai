@@ -151,7 +151,7 @@ function buildMessages(payload: Required<SajuPayload>) {
           `- Birthplace: ${payload.birthplace}\n` +
           `- Gender: ${payload.gender}\n` +
           `- Blood type: ${payload.bloodType}\n\n` +
-          `Write the following 9 sections in Markdown:\n\n` +
+          `Write the following 10 sections in Markdown:\n\n` +
           `## 1. Four Pillars (四柱八字) Analysis\n` +
           `- Derive and interpret the Heavenly Stem (天干) and Earthly Branch (地支) for year/month/day/hour pillars\n` +
           `- Five Elements (五行) distribution: strength of Wood/Fire/Earth/Metal/Water\n` +
@@ -189,7 +189,10 @@ function buildMessages(payload: Required<SajuPayload>) {
           `- 3 actions aligned with Yongsin\n` +
           `- 2 avoidances for Gisin\n` +
           `- 2 blood type-tailored tips\n` +
-          `- 2 Sun Sign tips`,
+          `- 2 Sun Sign tips\n\n` +
+          `## 10. Saju-Based Golf Style & Improvement Points\n` +
+          `- Interpret a golf style aligned with this Saju tendency (tempo, risk-taking, course management, and mental routine)\n` +
+          `- Include 3 concrete improvement points for weaknesses`,
       },
     ]
   }
@@ -237,7 +240,7 @@ function buildMessages(payload: Required<SajuPayload>) {
         `- 출생지: ${payload.birthplace}\n` +
         `- 성별: ${payload.gender}\n` +
         `- 혈액형: ${payload.bloodType}\n\n` +
-        `다음 9개 섹션을 마크다운으로 작성해줘:\n\n` +
+        `다음 10개 섹션을 마크다운으로 작성해줘:\n\n` +
         `## 1. 사주원국(四柱八字) 분석\n` +
         `- 년주(年柱)/월주(月柱)/일주(日柱)/시주(時柱) 각각의 천간(天干)·지지(地支) 도출 및 의미 해석\n` +
         `- 오행(五行) 분포: 목(木)/화(火)/토(土)/금(金)/수(水) 각 강약 분석\n` +
@@ -275,7 +278,10 @@ function buildMessages(payload: Required<SajuPayload>) {
         `- 용신 관련 행동 팁 3가지\n` +
         `- 기신 회피 팁 2가지\n` +
         `- 혈액형 맞춤 조언 2가지\n` +
-        `- 별자리 관점 조언 2가지`,
+        `- 별자리 관점 조언 2가지\n\n` +
+        `## 10. 사주 맞춤 골프 스타일 및 보완점\n` +
+        `- 사주 성향에 맞는 골프 스타일 해석 (템포, 리스크 성향, 코스 매니지먼트, 멘탈 루틴)\n` +
+        `- 약점을 보완할 수 있는 구체적 보완점 3가지`,
     },
   ]
 }
