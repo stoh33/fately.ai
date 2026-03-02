@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Marcellus&family=Noto+Sans+KR:wght@400;500;600;700&family=Noto+Serif+KR:wght@500;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700&family=Cormorant+Garamond:wght@400;500;600&family=Marcellus&family=Noto+Sans+KR:wght@400;500;600;700&family=Noto+Serif+KR:wght@500;700&display=swap');
 
 * {
   box-sizing: border-box;
@@ -6,9 +6,9 @@
 
 body {
   margin: 0;
-  font-family: "Noto Sans KR", sans-serif;
-  background: #f5efe6;
-  color: #1e1c17;
+  font-family: "Cormorant Garamond", "Noto Sans KR", serif;
+  background: #e7d9c0;
+  color: #2f2518;
 }
 
 #root {

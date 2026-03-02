@@ -1,0 +1,148 @@
+.saju-page {
+  min-height: 100vh;
+  background: #f2e7d2;
+  color: #2d2115;
+}
+
+.saju-wrap {
+  max-width: 1040px;
+  margin: 0 auto;
+  padding: 36px 18px 48px;
+  display: grid;
+  gap: 16px;
+}
+
+.saju-header h1 {
+  margin: 0;
+  font-family: "Cinzel", "Noto Serif KR", serif;
+}
+
+.saju-header p {
+  margin: 8px 0 0;
+  color: #6f5840;
+}
+
+.saju-card {
+  background: rgba(247, 236, 217, 0.96);
+  border: 1px solid rgba(118, 90, 61, 0.3);
+  border-radius: 14px;
+  padding: 16px;
+}
+
+.saju-form {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 12px;
+}
+
+.saju-form label {
+  display: grid;
+  gap: 6px;
+  font-size: 0.95rem;
+}
+
+.saju-form label > span {
+  font-weight: 600;
+}
+
+.saju-form input,
+.saju-form select,
+.saju-form textarea {
+  border: 1px solid rgba(117, 88, 58, 0.36);
+  border-radius: 10px;
+  padding: 10px 12px;
+  background: #fff9ee;
+  color: #2d2115;
+  font: inherit;
+}
+
+.saju-form .checkbox-line {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-top: 26px;
+}
+
+.saju-form .checkbox-line input {
+  width: 16px;
+  height: 16px;
+}
+
+.saju-form .full {
+  grid-column: 1 / -1;
+}
+
+.actions {
+  grid-column: 1 / -1;
+  display: flex;
+  gap: 8px;
+}
+
+.actions button {
+  border: 1px solid transparent;
+  border-radius: 999px;
+  padding: 11px 20px;
+  font-weight: 700;
+  cursor: pointer;
+  color: #f8efdc;
+  background: linear-gradient(180deg, #95693e, #744a28);
+}
+
+.actions button.ghost {
+  background: transparent;
+  color: #6f4726;
+  border-color: rgba(117, 88, 58, 0.4);
+}
+
+.actions button:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+.error {
+  margin: 0;
+  color: #7a2f1c;
+  font-weight: 600;
+}
+
+.report-panel {
+  background: rgba(247, 236, 217, 0.96);
+  border: 1px solid rgba(118, 90, 61, 0.3);
+  border-radius: 14px;
+  padding: 16px;
+}
+
+.report-panel h2 {
+  margin: 0 0 10px;
+  font-family: "Cinzel", "Noto Serif KR", serif;
+  font-size: 1.2rem;
+}
+
+.report-panel pre {
+  margin: 0;
+  background: #fdf7ed;
+  border: 1px solid rgba(118, 90, 61, 0.25);
+  border-radius: 10px;
+  padding: 14px;
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-family: "Noto Serif KR", "Courier New", monospace;
+  font-size: 0.92rem;
+  line-height: 1.6;
+  max-height: 70vh;
+  overflow: auto;
+}
+
+@media (max-width: 740px) {
+  .saju-wrap {
+    padding: 24px 14px 40px;
+  }
+
+  .saju-form {
+    grid-template-columns: 1fr;
+  }
+
+  .saju-form .checkbox-line {
+    padding-top: 0;
+  }
+}

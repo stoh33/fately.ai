@@ -7,11 +7,13 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test:saju": "bash scripts/verify-saju-calc.sh"
   },
   "dependencies": {
     "dompurify": "^3.2.6",
     "html2canvas": "^1.4.1",
+    "korean-lunar-calendar": "^0.3.6",
     "marked": "^15.0.12",
     "react": "^19.2.0",
     "react-dom": "^19.2.0"
