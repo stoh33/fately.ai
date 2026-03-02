@@ -24,7 +24,7 @@ type ReportResponse = {
   reportMarkdown?: string
   meta?: {
     fourPillars?: Record<string, unknown>
-    fiveElements?: Record<string, unknown>
+    fiveElements?: Record<string, { count?: number; strength?: string }>
     generatedAt?: string
   }
   error?: string
@@ -32,6 +32,24 @@ type ReportResponse = {
 }
 
 const STORAGE_KEY = 'sajuReport:last'
+type ElementKey = '목' | '화' | '토' | '금' | '수'
+type FiveElementsMeta = Record<ElementKey, { count: number; strength: string }>
+
+function normalizeFiveElements(
+  raw: Record<string, { count?: number; strength?: string }> | undefined,
+): FiveElementsMeta | null {
+  if (!raw) return null
+  const keys: ElementKey[] = ['목', '화', '토', '금', '수']
+  const result = {} as FiveElementsMeta
+  for (const key of keys) {
+    const item = raw[key]
+    if (!item || typeof item.count !== 'number' || typeof item.strength !== 'string') {
+      return null
+    }
+    result[key] = { count: item.count, strength: item.strength }
+  }
+  return result
+}
 
 export default function SajuPage() {
   const [clientName, setClientName] = useState('')
@@ -53,16 +71,21 @@ export default function SajuPage() {
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
   const [reportMarkdown, setReportMarkdown] = useState('')
+  const [fiveElements, setFiveElements] = useState<FiveElementsMeta | null>(null)
   const [copied, setCopied] = useState(false)
 
   useEffect(() => {
     const cached = localStorage.getItem(STORAGE_KEY)
     if (!cached) return
     try {
-      const parsed = JSON.parse(cached) as { reportMarkdown?: string }
+      const parsed = JSON.parse(cached) as {
+        reportMarkdown?: string
+        fiveElements?: Record<string, { count?: number; strength?: string }>
+      }
       if (parsed.reportMarkdown) {
         setReportMarkdown(parsed.reportMarkdown)
       }
+      setFiveElements(normalizeFiveElements(parsed.fiveElements))
     } catch {
       localStorage.removeItem(STORAGE_KEY)
     }
@@ -120,10 +143,13 @@ export default function SajuPage() {
       }
 
       setReportMarkdown(data.reportMarkdown)
+      const normalizedFiveElements = normalizeFiveElements(data.meta?.fiveElements)
+      setFiveElements(normalizedFiveElements)
       localStorage.setItem(
         STORAGE_KEY,
         JSON.stringify({
           reportMarkdown: data.reportMarkdown,
+          fiveElements: normalizedFiveElements,
           savedAt: new Date().toISOString(),
         }),
       )
@@ -350,6 +376,26 @@ export default function SajuPage() {
 
         <section className="report-panel">
           <h2>리포트 미리보기</h2>
+          {fiveElements ? (
+            <div className="elements-bar" aria-label="오행 분포 색상 요약">
+              {(
+                [
+                  ['목', 'wood'],
+                  ['화', 'fire'],
+                  ['토', 'earth'],
+                  ['금', 'metal'],
+                  ['수', 'water'],
+                ] as Array<[ElementKey, string]>
+              ).map(([key, klass]) => (
+                <div key={key} className={`element-chip ${klass}`}>
+                  <strong>{key}</strong>
+                  <span>
+                    {fiveElements[key].count} / {fiveElements[key].strength}
+                  </span>
+                </div>
+              ))}
+            </div>
+          ) : null}
           <pre>{reportMarkdown || '아직 생성된 리포트가 없습니다.'}</pre>
         </section>
       </main>

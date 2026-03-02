@@ -118,6 +118,55 @@
   font-size: 1.2rem;
 }
 
+.elements-bar {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: 8px;
+  margin: 0 0 12px;
+}
+
+.element-chip {
+  border-radius: 10px;
+  padding: 8px 10px;
+  border: 1px solid rgba(117, 88, 58, 0.25);
+  display: grid;
+  gap: 2px;
+}
+
+.element-chip strong {
+  font-size: 0.95rem;
+}
+
+.element-chip span {
+  font-size: 0.86rem;
+  opacity: 0.9;
+}
+
+.element-chip.wood {
+  background: rgba(112, 142, 88, 0.22);
+  color: #2f4429;
+}
+
+.element-chip.fire {
+  background: rgba(154, 89, 61, 0.2);
+  color: #4d2a19;
+}
+
+.element-chip.earth {
+  background: rgba(179, 144, 86, 0.24);
+  color: #4f3a1e;
+}
+
+.element-chip.metal {
+  background: rgba(168, 156, 137, 0.24);
+  color: #3f3527;
+}
+
+.element-chip.water {
+  background: rgba(98, 117, 137, 0.2);
+  color: #223346;
+}
+
 .report-panel pre {
   margin: 0;
   background: #fdf7ed;
