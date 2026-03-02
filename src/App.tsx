@@ -2,8 +2,10 @@ import { useMemo, useRef, useState } from 'react'
 import html2canvas from 'html2canvas'
 import DOMPurify from 'dompurify'
 import { marked } from 'marked'
-import heroConstellation from './assets/hero-constellation.svg'
 import './App.css'
+
+const heroPhotoUrl =
+  'https://images.unsplash.com/photo-1532968961962-8a0cb3a2d4f5?auto=format&fit=crop&fm=jpg&q=80&w=1600'
 
 const years = Array.from({ length: 127 }, (_, idx) => 1900 + idx)
 const months = Array.from({ length: 12 }, (_, idx) => idx + 1)
@@ -33,6 +35,7 @@ const copy = {
     birthYear: '생년',
     birthMonth: '월',
     birthDay: '일',
+    birthCalendar: '달력',
     birthHour: '시',
     birthplace: '태어난 지역',
     gender: '성별',
@@ -40,6 +43,7 @@ const copy = {
     selectYear: '연도 선택',
     selectMonth: '월 선택',
     selectDay: '일 선택',
+    selectCalendar: '음력/양력 선택',
     selectHour: '시간 선택',
     selectGender: '성별 선택',
     selectBlood: '혈액형 선택',
@@ -51,6 +55,8 @@ const copy = {
     bloodB: 'B형',
     bloodO: 'O형',
     bloodAB: 'AB형',
+    calendarSolar: '양력',
+    calendarLunar: '음력',
     cta: '사주 보기',
     loading: '보고서 생성 중...',
     reset: '다시 입력',
@@ -70,6 +76,7 @@ const copy = {
     birthYear: 'Year',
     birthMonth: 'Month',
     birthDay: 'Day',
+    birthCalendar: 'Calendar',
     birthHour: 'Hour',
     birthplace: 'Birthplace',
     gender: 'Gender',
@@ -77,6 +84,7 @@ const copy = {
     selectYear: 'Select year',
     selectMonth: 'Select month',
     selectDay: 'Select day',
+    selectCalendar: 'Select calendar',
     selectHour: 'Select hour',
     selectGender: 'Select gender',
     selectBlood: 'Select blood type',
@@ -88,6 +96,8 @@ const copy = {
     bloodB: 'Type B',
     bloodO: 'Type O',
     bloodAB: 'Type AB',
+    calendarSolar: 'Solar',
+    calendarLunar: 'Lunar',
     cta: 'View Saju',
     loading: 'Generating report...',
     reset: 'Reset',
@@ -232,6 +242,7 @@ function App() {
   const [report, setReport] = useState('')
   const [error, setError] = useState('')
   const [lastPayload, setLastPayload] = useState<{
+    birthCalendar: string
     birthYear: string
     birthMonth: string
     birthDay: string
@@ -256,6 +267,7 @@ function App() {
 
   const currentAge = useMemo(() => {
     if (!lastPayload) return null
+    if (lastPayload.birthCalendar === 'lunar') return null
     const year = Number(lastPayload.birthYear)
     const month = Number(lastPayload.birthMonth)
     const day = Number(lastPayload.birthDay)
@@ -284,6 +296,7 @@ function App() {
     try {
       const payload = {
         lang,
+        birthCalendar: String(formData.get('birthCalendar') || ''),
         birthYear: String(formData.get('birthYear') || ''),
         birthMonth: String(formData.get('birthMonth') || ''),
         birthDay: String(formData.get('birthDay') || ''),
@@ -293,6 +306,7 @@ function App() {
         bloodType: String(formData.get('bloodType') || ''),
       }
       setLastPayload({
+        birthCalendar: payload.birthCalendar,
         birthYear: payload.birthYear,
         birthMonth: payload.birthMonth,
         birthDay: payload.birthDay,
@@ -486,7 +500,7 @@ function App() {
           <p className="subhead">{t.subtitleExtra}</p>
           <figure className="hero-visual">
             <img
-              src={heroConstellation}
+              src={heroPhotoUrl}
               alt={
                 lang === 'ko'
                   ? '사주, 별자리, 혈액형, 골프 스타일을 통합한 상징 이미지'
@@ -504,6 +518,14 @@ function App() {
           </header>
 
           <form className="form" onSubmit={handleSubmit}>
+            <label className="field">
+              <span>{t.birthCalendar}</span>
+              <select name="birthCalendar" defaultValue="solar" required>
+                <option value="solar">{t.calendarSolar}</option>
+                <option value="lunar">{t.calendarLunar}</option>
+              </select>
+            </label>
+
             <div className="form-grid date-grid">
               <label className="field">
                 <span>{t.birthYear}</span>

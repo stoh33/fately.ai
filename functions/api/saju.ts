@@ -11,6 +11,7 @@ type Lang = 'ko' | 'en'
 
 type SajuPayload = {
   lang?: Lang
+  birthCalendar?: 'solar' | 'lunar'
   birthYear?: string
   birthMonth?: string
   birthDay?: string
@@ -58,6 +59,7 @@ const allowedHours = new Set([
 ])
 const allowedGenders = new Set(['female', 'male', 'other'])
 const allowedBloodTypes = new Set(['A', 'B', 'O', 'AB'])
+const allowedBirthCalendars = new Set(['solar', 'lunar'])
 
 function buildCorsHeaders(origin: string | null, allowedOrigins?: string) {
   if (!allowedOrigins) {
@@ -146,7 +148,7 @@ function buildMessages(payload: Required<SajuPayload>) {
         role: 'user',
         content:
           `Input:\n` +
-          `- Birth date (solar): ${payload.birthYear}-${payload.birthMonth}-${payload.birthDay}\n` +
+          `- Birth date (${payload.birthCalendar}): ${payload.birthYear}-${payload.birthMonth}-${payload.birthDay}\n` +
           `- Birth hour branch: ${payload.birthHour}\n` +
           `- Birthplace: ${payload.birthplace}\n` +
           `- Gender: ${payload.gender}\n` +
@@ -235,7 +237,7 @@ function buildMessages(payload: Required<SajuPayload>) {
       role: 'user',
       content:
         `입력값:\n` +
-        `- 생년월일(양력): ${payload.birthYear}-${payload.birthMonth}-${payload.birthDay}\n` +
+        `- 생년월일(${payload.birthCalendar === 'lunar' ? '음력' : '양력'}): ${payload.birthYear}-${payload.birthMonth}-${payload.birthDay}\n` +
         `- 출생 시지: ${payload.birthHour}\n` +
         `- 출생지: ${payload.birthplace}\n` +
         `- 성별: ${payload.gender}\n` +
@@ -318,6 +320,7 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
   }
 
   const requiredFields: Array<keyof SajuPayload> = [
+    'birthCalendar',
     'birthYear',
     'birthMonth',
     'birthDay',
@@ -336,6 +339,7 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
   const lang: Lang = body.lang === 'en' ? 'en' : 'ko'
   const payload: Required<SajuPayload> = {
     lang,
+    birthCalendar: body.birthCalendar === 'lunar' ? 'lunar' : 'solar',
     birthYear: String(body.birthYear).trim(),
     birthMonth: String(body.birthMonth).trim(),
     birthDay: String(body.birthDay).trim(),
@@ -368,6 +372,9 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
   }
   if (!allowedHours.has(payload.birthHour)) {
     return badRequest('Invalid birth hour.', origin, env.ALLOWED_ORIGINS)
+  }
+  if (!allowedBirthCalendars.has(payload.birthCalendar)) {
+    return badRequest('Invalid birth calendar.', origin, env.ALLOWED_ORIGINS)
   }
   if (!allowedGenders.has(payload.gender)) {
     return badRequest('Invalid gender.', origin, env.ALLOWED_ORIGINS)
