@@ -229,6 +229,38 @@ const formatJi = (value: string) => {
   return value
 }
 
+const inferElementFromGanJi = (gan: string, ji: string): ElementKey => {
+  const koGan = gan.replace(/\(.*\)/, '')
+  const koJi = ji.replace(/\(.*\)/, '')
+  const ganElementMap: Record<string, ElementKey> = {
+    갑: 'Wood',
+    을: 'Wood',
+    병: 'Fire',
+    정: 'Fire',
+    무: 'Earth',
+    기: 'Earth',
+    경: 'Metal',
+    신: 'Metal',
+    임: 'Water',
+    계: 'Water',
+  }
+  const jiElementMap: Record<string, ElementKey> = {
+    자: 'Water',
+    축: 'Earth',
+    인: 'Wood',
+    묘: 'Wood',
+    진: 'Earth',
+    사: 'Fire',
+    오: 'Fire',
+    미: 'Earth',
+    신: 'Metal',
+    유: 'Metal',
+    술: 'Earth',
+    해: 'Water',
+  }
+  return ganElementMap[koGan] || jiElementMap[koJi] || 'Earth'
+}
+
 const dayGanOrder = ['갑', '을', '병', '정', '무', '기', '경', '신', '임', '계']
 const dayJiOrder = ['자', '축', '인', '묘', '진', '사', '오', '미', '신', '유', '술', '해']
 
@@ -534,6 +566,26 @@ function App() {
     })
   }, [chartData?.daewoon, currentAge, lastPayload?.birthYear])
 
+  const daewoonMeaningText = (gan: string, ji: string) => {
+    const element = inferElementFromGanJi(gan, ji)
+    if (lang === 'en') {
+      if (element === 'Wood') return 'Growth and expansion phase; learning and networking tend to matter most.'
+      if (element === 'Fire') return 'Visibility and execution phase; momentum rises but overheat should be managed.'
+      if (element === 'Earth') return 'Stability and adjustment phase; foundations, routine, and risk control are key.'
+      if (element === 'Metal') return 'Decision and discipline phase; structure, standards, and pruning improve outcomes.'
+      return 'Flow and strategy phase; timing, information, and flexibility become major levers.'
+    }
+    if (element === 'Wood')
+      return '성장·확장 운으로 학습, 인맥 확장, 새로운 시도가 중요한 흐름입니다.'
+    if (element === 'Fire')
+      return '표현·실행 운으로 성과 가시화가 유리하나 과열·성급함 관리는 필요합니다.'
+    if (element === 'Earth')
+      return '안정·정비 운으로 기반 점검, 루틴 강화, 리스크 관리가 핵심입니다.'
+    if (element === 'Metal')
+      return '결단·정리 운으로 원칙 수립, 기준 강화, 선택과 집중이 유리합니다.'
+    return '전략·유연 운으로 타이밍 판단, 정보 활용, 유연한 대응이 성패를 좌우합니다.'
+  }
+
   return (
     <div className="app">
       <main className="layout">
@@ -807,6 +859,7 @@ function App() {
                               <span className="ganji">
                                 {item.gan} {item.ji}
                               </span>
+                              <p className="meaning">{daewoonMeaningText(item.gan, item.ji)}</p>
                               {item.current ? <span className="badge">현재</span> : null}
                             </div>
                           ))}

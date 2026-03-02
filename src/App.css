@@ -598,6 +598,13 @@ button:active {
   font-family: "Noto Serif KR", serif;
 }
 
+.timeline-item .meaning {
+  margin: 0;
+  font-size: 0.8rem;
+  color: var(--muted);
+  line-height: 1.4;
+}
+
 .timeline-item .badge {
   font-size: 0.75rem;
   color: #f8efdc;
