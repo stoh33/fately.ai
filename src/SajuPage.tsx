@@ -104,11 +104,19 @@ export default function SajuPage() {
       const raw = await response.text()
       let data: ReportResponse = {}
       if (raw) {
-        data = JSON.parse(raw) as ReportResponse
+        try {
+          data = JSON.parse(raw) as ReportResponse
+        } catch {
+          data = { error: raw.slice(0, 400) }
+        }
       }
 
       if (!response.ok || !data.reportMarkdown) {
-        throw new Error(data.error || data.detail || '리포트 생성에 실패했습니다.')
+        throw new Error(
+          data.error ||
+            data.detail ||
+            `리포트 생성에 실패했습니다. (status: ${response.status})`,
+        )
       }
 
       setReportMarkdown(data.reportMarkdown)

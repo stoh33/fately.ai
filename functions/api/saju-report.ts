@@ -224,6 +224,14 @@ function getMissingFormatRules(reportMarkdown: string) {
   return missing
 }
 
+function hasRequiredCoreHeaders(reportMarkdown: string) {
+  return (
+    reportMarkdown.includes('✦ 부록 1  혈액형 관점의 시사점  ✦') &&
+    reportMarkdown.includes('✦ 부록 2  별자리 관점의 시사점  ✦') &&
+    reportMarkdown.includes('✦ 부록 3  사주 기반 골프 스타일 분석  ✦')
+  )
+}
+
 function buildMessages(params: {
   payload: Required<SajuReportPayload>
   computed: ReturnType<typeof computeSaju>
@@ -536,21 +544,29 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
   }
 
   if (model.startsWith('o1') || model.startsWith('o3')) {
-    apiBody.max_completion_tokens = 5000
+    apiBody.max_completion_tokens = 3400
     apiBody.reasoning_effort = reasoningEffort
   } else {
-    apiBody.max_tokens = 5000
+    apiBody.max_tokens = 3400
   }
 
   const callOpenAI = async (requestBody: Record<string, unknown>) => {
-    const upstream = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${env.OPENAI_API_KEY}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(requestBody),
-    })
+    const controller = new AbortController()
+    const timeoutId = setTimeout(() => controller.abort(), 25000)
+    let upstream: Response
+    try {
+      upstream = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${env.OPENAI_API_KEY}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(requestBody),
+        signal: controller.signal,
+      })
+    } finally {
+      clearTimeout(timeoutId)
+    }
     if (!upstream.ok) {
       const detail = await upstream.text()
       throw new Error(`OpenAI request failed: ${detail}`)
@@ -562,36 +578,20 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
   let reportMarkdown = ''
   try {
     reportMarkdown = await callOpenAI(apiBody)
-    const missingRules = getMissingFormatRules(reportMarkdown)
-    if (reportMarkdown.length < 3000 || missingRules.length > 0) {
+    if (!hasRequiredCoreHeaders(reportMarkdown)) {
       const extendedMessages = [...messages]
       extendedMessages.push({
         role: 'user',
         content:
-          `검증 실패 항목을 반영해 다시 작성하세요.\n` +
-          `- 길이 조건: 3000자 이상\n` +
-          `- 누락/미충족 항목:\n${missingRules.map((rule) => `  - ${rule}`).join('\n') || '  - 분량 부족'}\n` +
-          `형식과 헤더 문구를 정확히 지켜서 전체 리포트를 재작성하세요.`,
+          '부록 헤더가 누락되었습니다. 아래 3개 헤더를 정확히 포함해 전체 보고서를 다시 작성하세요.\n' +
+          '- ✦ 부록 1  혈액형 관점의 시사점  ✦\n' +
+          '- ✦ 부록 2  별자리 관점의 시사점  ✦\n' +
+          '- ✦ 부록 3  사주 기반 골프 스타일 분석  ✦',
       })
       reportMarkdown = await callOpenAI({
         ...apiBody,
         messages: extendedMessages,
       })
-      const remaining = getMissingFormatRules(reportMarkdown)
-      if (remaining.length > 0) {
-        const finalMessages = [...extendedMessages]
-        finalMessages.push({
-          role: 'user',
-          content:
-            `아래 누락 헤더/조건을 마지막으로 반드시 충족하세요:\n` +
-            `${remaining.map((rule) => `- ${rule}`).join('\n')}\n` +
-            `특히 부록1→부록2→부록3 순서와 각 소제목 문구를 정확히 일치시켜 전체 보고서를 다시 작성하세요.`,
-        })
-        reportMarkdown = await callOpenAI({
-          ...apiBody,
-          messages: finalMessages,
-        })
-      }
     }
   } catch (err) {
     return jsonResponse(
@@ -605,6 +605,8 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
   if (!reportMarkdown) {
     return jsonResponse(502, { error: 'No report generated.' }, origin, env.ALLOWED_ORIGINS)
   }
+
+  const formatWarnings = getMissingFormatRules(reportMarkdown)
 
   const fourPillars = {
     year: computed.year,
@@ -623,6 +625,7 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
         bloodType,
         zodiacSign: zodiacResolved,
         zodiacAutoComputed: zodiacWasAuto,
+        formatWarnings,
         yongsinSuggestion: computed.yongsinSuggestion,
         gisinSuggestion: computed.gisinSuggestion,
         calendarAssumptionNote: computed.calendarAssumptionNote || null,
