@@ -1,3 +1,5 @@
+import { computeSaju } from '../lib/saju-calculator'
+
 type PagesContext<Env> = {
   request: Request
   env: Env
@@ -109,7 +111,21 @@ function assertMaxLen(value: string, maxLen: number, field: string) {
   }
 }
 
-function buildMessages(payload: Required<SajuPayload>) {
+function buildMessages(payload: Required<SajuPayload>, computed: ReturnType<typeof computeSaju>) {
+  const sajuContextKo = `
+사주 계산 결과:
+- 년주: ${computed.year.stem}${computed.year.branch} (${computed.year.stemHanja}${computed.year.branchHanja}) / ${computed.year.element}
+- 월주: ${computed.month.stem}${computed.month.branch} (${computed.month.stemHanja}${computed.month.branchHanja}) / ${computed.month.element}
+- 일주: ${computed.day.stem}${computed.day.branch} (${computed.day.stemHanja}${computed.day.branchHanja}) / ${computed.day.element}
+- 시주: ${
+    'unknown' in computed.hour
+      ? '미상'
+      : `${computed.hour.stem}${computed.hour.branch} (${computed.hour.stemHanja}${computed.hour.branchHanja}) / ${computed.hour.element}`
+  }
+- 오행 분포: 목 ${computed.fiveElements.목.count}, 화 ${computed.fiveElements.화.count}, 토 ${computed.fiveElements.토.count}, 금 ${computed.fiveElements.금.count}, 수 ${computed.fiveElements.수.count}
+- 용신: ${computed.yongsinSuggestion}
+- 기신: ${computed.gisinSuggestion}
+`.trim()
   if (payload.lang === 'en') {
     return [
       {
@@ -383,13 +399,30 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
     return badRequest('Invalid blood type.', origin, env.ALLOWED_ORIGINS)
   }
 
+  let computed: ReturnType<typeof computeSaju>
+  try {
+    computed = computeSaju({
+      birthDate: `${payload.birthYear}-${payload.birthMonth.padStart(2, '0')}-${payload.birthDay.padStart(2, '0')}`,
+      birthHourBranch: payload.birthHour,
+      timeUnknown: false,
+      calendarType: payload.birthCalendar,
+      timezone: 'Asia/Seoul',
+    })
+  } catch (err) {
+    return badRequest(
+      err instanceof Error ? err.message : 'Saju computation failed.',
+      origin,
+      env.ALLOWED_ORIGINS,
+    )
+  }
+
   const model = env.OPENAI_MODEL || 'gpt-4.1-mini'
   const effort = (env.OPENAI_REASONING_EFFORT || 'medium').toLowerCase()
   const reasoningEffort =
     effort === 'low' || effort === 'medium' || effort === 'high'
       ? effort
       : 'medium'
-  const messages = buildMessages(payload)
+  const messages = buildMessages(payload, computed)
 
   const apiBody: any = {
     model,

@@ -14,7 +14,7 @@ npx tsc functions/lib/saju-calculator.ts \
   --moduleResolution bundler \
   --skipLibCheck \
   --types node \
-  --outDir "$TMP_DIR" >/dev/null
+  --outDir "$TMP_DIR"
 
 TMP_DIR="$TMP_DIR" node --input-type=module <<'NODE'
 const moduleUrl = `file://${process.env.TMP_DIR}/saju-calculator.js`
