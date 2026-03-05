@@ -1,4 +1,3 @@
-import { GoogleGenerativeAI } from '@google/generative-ai'
 import { computeSaju } from '../lib/saju-calculator'
 
 type PagesContext<Env> = {
@@ -54,11 +53,32 @@ async function callOpenAI(apiKey: string, model: string, systemInstruction: stri
 }
 
 async function callGemini(apiKey: string, modelName: string, systemInstruction: string, userPrompt: string) {
-  const genAI = new GoogleGenerativeAI(apiKey)
-  const model = genAI.getGenerativeModel({ model: modelName || 'gemini-2.0-flash', systemInstruction })
-  const result = await model.generateContent(userPrompt)
-  const response = await result.response
-  return response.text().trim()
+  const model = modelName || 'gemini-2.0-flash'
+  const res = await fetch(
+    `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        system_instruction: {
+          parts: [{ text: systemInstruction }]
+        },
+        contents: [
+          { role: 'user', parts: [{ text: userPrompt }] }
+        ],
+        generationConfig: {
+          maxOutputTokens: 4000,
+          temperature: 0.7,
+        }
+      })
+    }
+  )
+  if (!res.ok) {
+    const error = await res.json() as any
+    throw new Error(error.error?.message || 'Gemini API request failed')
+  }
+  const data = await res.json() as any
+  return data.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || ''
 }
 
 export const onRequestOptions: PagesFunction<Env> = async ({ request, env }) => {
@@ -73,13 +93,10 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
 
   const aiProvider = (body.aiProvider || 'gemini') as AiProvider
   
-  // 환경 변수 찾는 로직 강화
   const getEnvValue = (obj: any, target: string) => {
     if (!obj) return null;
-    // 1. 정확한 이름으로 찾기
     if (obj[target]) return obj[target];
-    // 2. 대소문자 무시하고 찾기
-    const foundKey = Object.keys(obj).find(k => k.toUpperCase() === target.toUpperCase());
+    const foundKey = Object.keys(obj).find(k => k.trim().toUpperCase() === target.toUpperCase());
     return foundKey ? obj[foundKey] : null;
   };
 
@@ -87,11 +104,7 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
   const apiKey = getEnvValue(env, targetKeyName);
 
   if (!apiKey) {
-    const availableKeys = Object.keys(env || {}).join(', ');
-    return new Response(JSON.stringify({ 
-      error: `${aiProvider.toUpperCase()} API Key not configured.`,
-      debug: `Looking for: ${targetKeyName}, Available: [${availableKeys || 'NONE'}]`
-    }), { 
+    return new Response(JSON.stringify({ error: `${aiProvider.toUpperCase()} API 키가 설정되지 않았습니다.` }), { 
       status: 500,
       headers: { ...corsHeaders, ...buildCorsHeaders(origin, env.ALLOWED_ORIGINS), 'content-type': 'application/json' }
     })

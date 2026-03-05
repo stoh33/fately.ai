@@ -1,4 +1,3 @@
-import { GoogleGenerativeAI } from '@google/generative-ai'
 import { computeSaju, getSexagenaryYear } from '../lib/saju-calculator'
 
 type PagesContext<Env> = {
@@ -39,7 +38,7 @@ function jsonResponse(status: number, body: Record<string, unknown>, origin: str
   })
 }
 
-// OpenAI API 호출 함수 (fetch 사용)
+// OpenAI API 호출 함수
 async function callOpenAI(apiKey: string, model: string, systemInstruction: string, userPrompt: string) {
   const response = await fetch('https://api.openai.com/v1/chat/completions', {
     method: 'POST',
@@ -49,30 +48,46 @@ async function callOpenAI(apiKey: string, model: string, systemInstruction: stri
     },
     body: JSON.stringify({
       model: model || 'gpt-4o-mini',
-      messages: [
-        { role: 'system', content: systemInstruction },
-        { role: 'user', content: userPrompt }
-      ],
+      messages: [{ role: 'system', content: systemInstruction }, { role: 'user', content: userPrompt }],
       temperature: 0.7,
     }),
   })
-
   if (!response.ok) {
     const error = await response.json() as any
     throw new Error(error.error?.message || 'OpenAI API request failed')
   }
-
   const data = await response.json() as any
   return data.choices[0].message.content.trim()
 }
 
-// Gemini API 호출 함수
+// Gemini API 호출 함수 (Edge Runtime 호환 fetch 방식)
 async function callGemini(apiKey: string, modelName: string, systemInstruction: string, userPrompt: string) {
-  const genAI = new GoogleGenerativeAI(apiKey)
-  const model = genAI.getGenerativeModel({ model: modelName || 'gemini-2.0-flash', systemInstruction })
-  const result = await model.generateContent(userPrompt)
-  const response = await result.response
-  return response.text().trim()
+  const model = modelName || 'gemini-2.0-flash'
+  const res = await fetch(
+    `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        system_instruction: {
+          parts: [{ text: systemInstruction }]
+        },
+        contents: [
+          { role: 'user', parts: [{ text: userPrompt }] }
+        ],
+        generationConfig: {
+          maxOutputTokens: 4000,
+          temperature: 0.7,
+        }
+      })
+    }
+  )
+  if (!res.ok) {
+    const error = await res.json() as any
+    throw new Error(error.error?.message || 'Gemini API request failed')
+  }
+  const data = await res.json() as any
+  return data.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || ''
 }
 
 export const onRequestOptions: PagesFunction<Env> = async ({ request, env }) => {
@@ -88,19 +103,21 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
 
   const aiProvider = (body.aiProvider || 'gemini') as AiProvider
   
-  // 1. API 키 확인
-  let apiKey = ''
-  if (aiProvider === 'gemini') {
-    apiKey = env.GEMINI_API_KEY || (Object.entries(env).find(([k]) => k.toUpperCase() === 'GEMINI_API_KEY')?.[1] as string)
-  } else {
-    apiKey = env.OPENAI_API_KEY || (Object.entries(env).find(([k]) => k.toUpperCase() === 'OPENAI_API_KEY')?.[1] as string)
-  }
+  const getEnvValue = (obj: any, target: string) => {
+    if (!obj) return null;
+    if (obj[target]) return obj[target];
+    const foundKey = Object.keys(obj).find(k => k.trim().toUpperCase() === target.toUpperCase());
+    return foundKey ? obj[foundKey] : null;
+  };
+
+  const apiKey = aiProvider === 'gemini' 
+    ? getEnvValue(env, 'GEMINI_API_KEY') 
+    : getEnvValue(env, 'OPENAI_API_KEY');
 
   if (!apiKey) {
     return jsonResponse(500, { error: `${aiProvider.toUpperCase()} API 키가 설정되지 않았습니다.` }, origin, env.ALLOWED_ORIGINS)
   }
 
-  // 2. 사주 계산
   let computed: any
   try {
     computed = computeSaju({
@@ -112,7 +129,6 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
     })
   } catch (err) { return jsonResponse(400, { error: '사주 계산 실패' }, origin, env.ALLOWED_ORIGINS) }
 
-  // 3. 프롬프트 생성
   const currentYear = new Date().getFullYear()
   const currentYearGanji = getSexagenaryYear(currentYear)
   const systemInstruction = '당신은 전문 역술가입니다. 사주를 분석하여 상세한 보고서를 작성하세요. 결과는 마크다운 형식을 사용하세요.'
@@ -130,7 +146,6 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
 5. 사주 맞춤 골프 스타일 및 훈련 조언 (2주 플랜 포함)
 `
 
-  // 4. 선택된 엔진 호출
   try {
     let reportMarkdown = ''
     if (aiProvider === 'openai') {
