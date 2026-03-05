@@ -362,7 +362,7 @@ function buildPrompt(params: {
     `${currentYear} 세운 분석 — ${currentYearGanji}年 총평 및 bullets(사업·투자/대인관계/건강/가정·연애).\n` +
     `13) 제5장에는 반드시:\n` +
     `   - ◆ 삶의 방향성 — 핵심 메시지\n` +
-    `   - ◆ 개운법(開운법) — 운을 여는 방법\n` +
+    `   - ◆ 개운법(開運法) — 운을 여는 방법\n` +
     `   - bullets: 색상/방위/음식/활동/수호석/기도·기원\n` +
     `14) 리포트는 3000자 이상으로 충분히 상세하게 작성.\n` +
     `15) 마지막에 아래 세 문장을 반드시 포함:\n` +
@@ -414,7 +414,7 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
   // 2. Rate Limit & IP 확인
   const ip = inferIp(request)
   if (!enforceRateLimit(ip)) {
-    return jsonResponse(429, { error: 'Too many requests.' }, origin, env.ALLOWED_ORIGINS)
+    return jsonResponse(429, { error: 'Too many requests. Please retry in about a minute.' }, origin, env.ALLOWED_ORIGINS)
   }
 
   // 3. 바디 파싱 및 검증
@@ -496,7 +496,7 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
     }
 
     if (!reportMarkdown) {
-      return jsonResponse(502, { error: 'No report generated.' }, origin, env.ALLOWED_ORIGINS)
+      return jsonResponse(502, { error: 'AI가 리포트를 생성하지 못했습니다. 다시 시도해 주세요.' }, origin, env.ALLOWED_ORIGINS)
     }
 
     return jsonResponse(200, {
@@ -510,7 +510,12 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
       }
     }, origin, env.ALLOWED_ORIGINS)
 
-  } catch (err) {
-    return jsonResponse(502, { error: 'Gemini API failed.', detail: String(err) }, origin, env.ALLOWED_ORIGINS)
+  } catch (err: any) {
+    const isQuotaError = String(err).includes('429') || String(err).includes('Quota');
+    const errorMessage = isQuotaError 
+      ? 'Google Gemini API 사용량이 초과되었습니다. 잠시 후 다시 시도하거나 API 설정을 확인해 주세요.' 
+      : `Gemini API 호출 실패: ${err.message || String(err)}`;
+
+    return jsonResponse(isQuotaError ? 429 : 502, { error: errorMessage, detail: String(err) }, origin, env.ALLOWED_ORIGINS)
   }
 }

@@ -411,7 +411,7 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
     const report = response.text().trim() || null
 
     if (!report) {
-      return new Response(JSON.stringify({ error: 'No report generated.' }), {
+      return new Response(JSON.stringify({ error: 'AI가 리포트를 생성하지 못했습니다. 다시 시도해 주세요.' }), {
         status: 502,
         headers: {
           ...corsHeaders,
@@ -429,14 +429,19 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
         'content-type': 'application/json; charset=utf-8',
       },
     })
-  } catch (err) {
+  } catch (err: any) {
+    const isQuotaError = String(err).includes('429') || String(err).includes('Quota');
+    const errorMessage = isQuotaError 
+      ? 'Google Gemini API 사용량이 초과되었습니다. 잠시 후 다시 시도하거나 API 설정을 확인해 주세요.' 
+      : `Gemini API 호출 실패: ${err.message || String(err)}`;
+
     return new Response(
       JSON.stringify({
-        error: 'Gemini API request failed.',
-        detail: err instanceof Error ? err.message : String(err),
+        error: errorMessage,
+        detail: String(err),
       }),
       {
-        status: 502,
+        status: isQuotaError ? 429 : 502,
         headers: {
           ...corsHeaders,
           ...buildCorsHeaders(origin, env.ALLOWED_ORIGINS),
