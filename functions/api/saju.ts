@@ -301,6 +301,7 @@ export const onRequestOptions: PagesFunction<Env> = async ({ request, env }) => 
 export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
   const origin = request.headers.get('Origin')
   if (!env.GEMINI_API_KEY) {
+    console.error('GEMINI_API_KEY is missing from environment variables')
     return new Response(JSON.stringify({ error: 'GEMINI_API_KEY is not configured.' }), {
       status: 500,
       headers: {
