@@ -35,6 +35,11 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'Content-Type',
 }
 
+const allowedHours = new Set(['자', '축', '인', '묘', '진', '사', '오', '미', '신', '유', '술', '해'])
+const allowedGenders = new Set(['female', 'male', 'other'])
+const allowedBloodTypes = new Set(['A', 'B', 'O', 'AB'])
+const allowedBirthCalendars = new Set(['solar', 'lunar'])
+
 function buildCorsHeaders(origin: string | null, allowedOrigins?: string) {
   if (!allowedOrigins) return { 'Access-Control-Allow-Origin': '*' }
   const allowlist = new Set(allowedOrigins.split(',').map((item) => item.trim()).filter(Boolean))
@@ -45,94 +50,123 @@ function buildCorsHeaders(origin: string | null, allowedOrigins?: string) {
 function badRequest(message: string, origin: string | null, allowedOrigins?: string) {
   return new Response(JSON.stringify({ error: message }), {
     status: 400,
-    headers: {
-      ...corsHeaders,
-      ...buildCorsHeaders(origin, allowedOrigins),
-      'content-type': 'application/json; charset=utf-8',
-    },
+    headers: { ...corsHeaders, ...buildCorsHeaders(origin, allowedOrigins), 'content-type': 'application/json; charset=utf-8' },
   })
 }
 
 function isValidDate(year: number, month: number, day: number) {
+  if (year < 1900 || year > 2100) return false
+  if (month < 1 || month > 12) return false
+  if (day < 1 || day > 31) return false
   const date = new Date(Date.UTC(year, month - 1, day))
   return date.getUTCFullYear() === year && date.getUTCMonth() === month - 1 && date.getUTCDate() === day
 }
 
-function buildPrompt(payload: Required<SajuPayload>, computed: any) {
-  const sajuContextKo = `년주: ${computed.year.stem}${computed.year.branch}, 월주: ${computed.month.stem}${computed.month.branch}, 일주: ${computed.day.stem}${computed.day.branch}, 시주: ${computed.hour.stem || '미상'}${computed.hour.branch || ''}`
-  
-  const systemInstruction = '당신은 한국 전통 명리학 전문 상담가입니다. 친절하고 상세하게 사주 리포트를 작성하세요.'
-  const userPrompt = `입력 데이터: ${JSON.stringify(payload)}\n사주 원국: ${sajuContextKo}\n위 데이터를 바탕으로 상세 분석 리포트를 작성해줘.`
+function buildPrompt(payload: Required<SajuPayload>, computed: ReturnType<typeof computeSaju>) {
+  const sajuContextKo = `
+사주 계산 결과:
+- 년주: ${computed.year.stem}${computed.year.branch} (${computed.year.stemHanja}${computed.year.branchHanja}) / ${computed.year.element}
+- 월주: ${computed.month.stem}${computed.month.branch} (${computed.month.stemHanja}${computed.month.branchHanja}) / ${computed.month.element}
+- 일주: ${computed.day.stem}${computed.day.branch} (${computed.day.stemHanja}${computed.day.branchHanja}) / ${computed.day.element}
+- 시주: ${'unknown' in computed.hour ? '미상' : `${computed.hour.stem}${computed.hour.branch} (${computed.hour.stemHanja}${computed.hour.branchHanja}) / ${computed.hour.element}`}
+- 오행 분포: 목 ${computed.fiveElements.목.count}, 화 ${computed.fiveElements.화.count}, 토 ${computed.fiveElements.토.count}, 금 ${computed.fiveElements.금.count}, 수 ${computed.fiveElements.수.count}
+- 용신: ${computed.yongsinSuggestion}
+- 기신: ${computed.gisinSuggestion}
+`.trim()
+
+  if (payload.lang === 'en') {
+    const systemInstruction = 'You are a professional Korean Saju consultant. Write a detailed report in Markdown.'
+    const userPrompt = `Input: ${JSON.stringify(payload)}\nSaju Data: ${sajuContextKo}\nWrite a 10-section analysis report.`
+    return { systemInstruction, userPrompt }
+  }
+
+  const systemInstruction = '당신은 한국 전통 명리학 전문 상담가입니다. 입력된 데이터를 바탕으로 상세한 분석 보고서를 마크다운으로 작성하세요.'
+  const userPrompt = `입력값: ${JSON.stringify(payload)}\n사주 데이터: ${sajuContextKo}\n다음 10개 섹션을 마크다운으로 작성해줘: 1. 사주원국 분석, 2. 십신 및 성격, 3. 대운 흐름, 4. 별자리 교차 분석, 5. 혈액형 인사이트, 6. 종합운 요약, 7. 2026년 운세 상세, 8. 월별 운세, 9. 실천 팁, 10. 사주 맞춤 골프 스타일.`
   
   return { systemInstruction, userPrompt }
 }
 
 export const onRequestOptions: PagesFunction<Env> = async ({ request, env }) => {
   const origin = request.headers.get('Origin')
-  return new Response(null, {
-    status: 204,
-    headers: { ...corsHeaders, ...buildCorsHeaders(origin, env.ALLOWED_ORIGINS) },
-  })
+  return new Response(null, { status: 204, headers: { ...corsHeaders, ...buildCorsHeaders(origin, env.ALLOWED_ORIGINS) } })
 }
 
 export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
   const origin = request.headers.get('Origin')
   
-  // 1. 키 찾기 (유연하게)
-  const apiKey = env.GEMINI_API_KEY || (Object.entries(env).find(([k]) => k.toUpperCase() === 'GEMINI_API_KEY')?.[1] as string);
+  // 1. 환경 변수 확인 (유연한 검색)
+  const findEnvKey = (envObj: any, target: string) => {
+    if (!envObj) return null;
+    if (envObj[target]) return envObj[target];
+    const keys = Object.keys(envObj);
+    const found = keys.find(k => k.trim().toUpperCase() === target.toUpperCase());
+    return found ? envObj[found] : null;
+  };
 
+  const apiKey = findEnvKey(env, 'GEMINI_API_KEY');
   if (!apiKey) {
-    const keys = Object.keys(env || {}).join(', ');
-    return new Response(JSON.stringify({ error: `API 키 설정이 필요합니다. (인식된 키: [${keys || '없음'}])` }), {
+    const availableKeys = Object.keys(env || {}).join(', ');
+    return new Response(JSON.stringify({ error: `API 키 설정이 필요합니다. (Available keys: [${availableKeys || 'NONE'}])` }), {
       status: 500,
       headers: { ...corsHeaders, ...buildCorsHeaders(origin, env.ALLOWED_ORIGINS), 'content-type': 'application/json' },
     })
   }
 
   // 2. 바디 파싱 및 검증
-  let body: any
+  let body: SajuPayload
   try { body = await request.json() } catch { return badRequest('Invalid JSON body.', origin, env.ALLOWED_ORIGINS) }
 
-  // 3. 사주 계산
-  let computed: any
-  try {
-    computed = computeSaju({
-      birthDate: `${body.birthYear}-${String(body.birthMonth).padStart(2, '0')}-${String(body.birthDay).padStart(2, '0')}`,
-      birthHourBranch: body.birthHour,
-      timeUnknown: !body.birthHour,
-      calendarType: body.birthCalendar || 'solar',
-      timezone: 'Asia/Seoul',
-    })
-  } catch (err) {
-    return badRequest('사주 계산 중 오류가 발생했습니다.', origin, env.ALLOWED_ORIGINS)
+  const lang: Lang = body.lang === 'en' ? 'en' : 'ko'
+  const payload: Required<SajuPayload> = {
+    lang,
+    birthCalendar: body.birthCalendar === 'lunar' ? 'lunar' : 'solar',
+    birthYear: String(body.birthYear || '').trim(),
+    birthMonth: String(body.birthMonth || '').trim(),
+    birthDay: String(body.birthDay || '').trim(),
+    birthHour: String(body.birthHour || '').trim(),
+    birthplace: String(body.birthplace || '').trim(),
+    gender: String(body.gender || 'other').trim(),
+    bloodType: String(body.bloodType || 'A').trim(),
   }
 
-  const { systemInstruction, userPrompt } = buildPrompt(body, computed)
+  const year = Number(payload.birthYear), month = Number(payload.birthMonth), day = Number(payload.birthDay)
+  if (!isValidDate(year, month, day)) return badRequest('Invalid birth date.', origin, env.ALLOWED_ORIGINS)
 
-  // 4. Gemini API 호출
+  // 3. 사주 계산
+  let computed: ReturnType<typeof computeSaju>
+  try {
+    computed = computeSaju({
+      birthDate: `${payload.birthYear}-${payload.birthMonth.padStart(2, '0')}-${payload.birthDay.padStart(2, '0')}`,
+      birthHourBranch: payload.birthHour,
+      timeUnknown: false,
+      calendarType: payload.birthCalendar,
+      timezone: 'Asia/Seoul',
+    })
+  } catch (err) { return badRequest('Saju computation failed.', origin, env.ALLOWED_ORIGINS) }
+
+  const { systemInstruction, userPrompt } = buildPrompt(payload, computed)
+
+  // 4. API 호출
   try {
     const genAI = new GoogleGenerativeAI(apiKey)
-    const model = genAI.getGenerativeModel({ model: env.GEMINI_MODEL || 'gemini-2.0-flash', systemInstruction })
+    const modelName = env.GEMINI_MODEL || 'gemini-2.0-flash'
+    const model = genAI.getGenerativeModel({ model: modelName, systemInstruction })
     
     const result = await model.generateContent(userPrompt)
     const response = await result.response
     const report = response.text().trim()
 
-    return new Response(JSON.stringify({ report }), {
+    if (!report) throw new Error('Empty response from Gemini')
+
+    return new Response(JSON.stringify({ report, model: modelName }), {
       status: 200,
       headers: { ...corsHeaders, ...buildCorsHeaders(origin, env.ALLOWED_ORIGINS), 'content-type': 'application/json' },
     })
   } catch (err: any) {
-    // 상세한 에러 메시지 구성
-    let detail = String(err);
-    if (detail.includes('429')) detail = 'Google API 사용량이 초과되었거나 제한되었습니다 (429 Quota Exceeded).';
-    if (detail.includes('403')) detail = 'API 키 권한이 없거나 지역 제한이 있습니다 (403 Forbidden).';
-    if (detail.includes('400')) detail = '잘못된 요청입니다. 프롬프트나 설정을 확인하세요 (400 Bad Request).';
-
-    return new Response(JSON.stringify({ 
-      error: `Gemini API 호출 실패: ${detail}`,
-      raw_error: String(err)
-    }), {
+    let msg = String(err);
+    if (msg.includes('429')) msg = 'Google API 사용량이 초과되었습니다. 잠시 후 다시 시도해 주세요.';
+    if (msg.includes('403')) msg = 'API 키 권한 오류 혹은 지역 제한입니다.';
+    return new Response(JSON.stringify({ error: `Gemini API 호출 실패: ${msg}`, detail: String(err) }), {
       status: 502,
       headers: { ...corsHeaders, ...buildCorsHeaders(origin, env.ALLOWED_ORIGINS), 'content-type': 'application/json' },
     })
