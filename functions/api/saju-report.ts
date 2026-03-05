@@ -151,7 +151,7 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
     if (aiProvider === 'openai') {
       reportMarkdown = await callOpenAI(apiKey, env.OPENAI_MODEL || 'gpt-4o-mini', systemInstruction, userPrompt)
     } else {
-      reportMarkdown = await callGemini(apiKey, env.GEMINI_MODEL || 'gemini-1.5-flash', systemInstruction, userPrompt)
+      reportMarkdown = await callGemini(apiKey, env.GEMINI_MODEL || 'gemini-2.0-flash-lite', systemInstruction, userPrompt)
     }
 
     if (!reportMarkdown) throw new Error('Empty response')
