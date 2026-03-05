@@ -62,32 +62,67 @@ async function callOpenAI(apiKey: string, model: string, systemInstruction: stri
 
 // Gemini API 호출 함수 (Edge Runtime 호환 fetch 방식)
 async function callGemini(apiKey: string, modelName: string, systemInstruction: string, userPrompt: string) {
-  const model = modelName || 'gemini-1.5-flash'
-  const res = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
-    {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        systemInstruction: {
-          parts: [{ text: systemInstruction }]
-        },
-        contents: [
-          { role: 'user', parts: [{ text: userPrompt }] }
-        ],
-        generationConfig: {
-          maxOutputTokens: 4000,
-          temperature: 0.7,
-        }
-      })
+  const preferredModel = modelName || 'gemini-2.0-flash'
+  const modelCandidates = [...new Set([preferredModel, 'gemini-2.0-flash', 'gemini-1.5-flash'])]
+  let lastError = 'Gemini API request failed'
+
+  for (const model of modelCandidates) {
+    const res = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          systemInstruction: {
+            parts: [{ text: systemInstruction }]
+          },
+          contents: [
+            { role: 'user', parts: [{ text: userPrompt }] }
+          ],
+          generationConfig: {
+            maxOutputTokens: 4000,
+            temperature: 0.7,
+          }
+        })
+      }
+    )
+
+    const rawBody = await res.text()
+    let data: any = null
+    try { data = rawBody ? JSON.parse(rawBody) : null } catch {}
+
+    if (!res.ok) {
+      const message = data?.error?.message || rawBody || 'Gemini API request failed'
+      const statusCode = data?.error?.code ?? res.status
+      const statusText = data?.error?.status || ''
+      const detail = `[${statusCode}${statusText ? ` ${statusText}` : ''}] ${message}`
+      const isModelNotFound =
+        Number(statusCode) === 404 ||
+        statusText === 'NOT_FOUND' ||
+        /model.*not found|not found.*model/i.test(message)
+
+      if (isModelNotFound) {
+        lastError = `Gemini 모델(${model})을 찾을 수 없습니다. ${detail}`
+        continue
+      }
+      throw new Error(detail)
     }
-  )
-  if (!res.ok) {
-    const error = await res.json() as any
-    throw new Error(error.error?.message || 'Gemini API request failed')
+
+    const text = data?.candidates?.[0]?.content?.parts
+      ?.map((part: any) => (typeof part?.text === 'string' ? part.text : ''))
+      .join('')
+      .trim()
+    if (text) return text
+
+    const blockReason = data?.promptFeedback?.blockReason || data?.candidates?.[0]?.finishReason
+    if (blockReason) {
+      throw new Error(`Gemini 응답이 차단되었습니다. (${blockReason})`)
+    }
+
+    lastError = `Gemini 응답 본문이 비어 있습니다. (model: ${model})`
   }
-  const data = await res.json() as any
-  return data.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || ''
+
+  throw new Error(lastError)
 }
 
 export const onRequestOptions: PagesFunction<Env> = async ({ request, env }) => {
@@ -151,7 +186,7 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
     if (aiProvider === 'openai') {
       reportMarkdown = await callOpenAI(apiKey, env.OPENAI_MODEL || 'gpt-4o-mini', systemInstruction, userPrompt)
     } else {
-      reportMarkdown = await callGemini(apiKey, env.GEMINI_MODEL || 'gemini-2.0-flash-lite', systemInstruction, userPrompt)
+      reportMarkdown = await callGemini(apiKey, env.GEMINI_MODEL || 'gemini-2.0-flash', systemInstruction, userPrompt)
     }
 
     if (!reportMarkdown) throw new Error('Empty response')
@@ -167,8 +202,9 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
     }, origin, env.ALLOWED_ORIGINS)
 
   } catch (err: any) {
-    let msg = `${aiProvider.toUpperCase()} API 호출 중 오류가 발생했습니다.`;
-    if (String(err).includes('429')) msg = 'API 할당량 초과되었습니다. 잠시 후 다시 시도하세요.';
-    return jsonResponse(502, { error: msg, detail: String(err) }, origin, env.ALLOWED_ORIGINS)
+    const detail = err instanceof Error ? err.message : String(err)
+    let msg = detail || `${aiProvider.toUpperCase()} API 호출 중 오류가 발생했습니다.`
+    if (detail.includes('429')) msg = 'API 할당량 초과되었습니다. 잠시 후 다시 시도하세요.'
+    return jsonResponse(502, { error: msg, detail }, origin, env.ALLOWED_ORIGINS)
   }
 }
