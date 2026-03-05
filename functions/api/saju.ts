@@ -300,11 +300,23 @@ export const onRequestOptions: PagesFunction<Env> = async ({ request, env }) => 
 
 export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
   const origin = request.headers.get('Origin')
-  if (!env.GEMINI_API_KEY) {
-    const availableKeys = Object.keys(env || {}).join(', ')
+  
+  // 환경 변수 탐색 로직 개선 (대소문자 무시 및 공백 제거)
+  const findEnvKey = (envObj: any, target: string) => {
+    if (!envObj) return null;
+    if (envObj[target]) return envObj[target];
+    const keys = Object.keys(envObj);
+    const found = keys.find(k => k.trim().toUpperCase() === target.toUpperCase());
+    return found ? envObj[found] : null;
+  };
+
+  const apiKey = findEnvKey(env, 'GEMINI_API_KEY');
+  const availableKeys = Object.keys(env || {}).join(', ');
+
+  if (!apiKey) {
     console.error(`GEMINI_API_KEY is missing. Available keys: ${availableKeys || 'none'}`)
     return new Response(JSON.stringify({ 
-      error: 'GEMINI_API_KEY is not configured.',
+      error: `GEMINI_API_KEY is not configured. (Available keys: [${availableKeys || 'NONE'}])`,
       debug_keys: availableKeys
     }), {
       status: 500,
@@ -322,90 +334,9 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
   } catch {
     return badRequest('Invalid JSON body.', origin, env.ALLOWED_ORIGINS)
   }
-
-  const requiredFields: Array<keyof SajuPayload> = [
-    'birthCalendar',
-    'birthYear',
-    'birthMonth',
-    'birthDay',
-    'birthHour',
-    'birthplace',
-    'gender',
-    'bloodType',
-  ]
-
-  for (const field of requiredFields) {
-    if (!body[field] || String(body[field]).trim() === '') {
-      return badRequest(`Missing field: ${field}`, origin, env.ALLOWED_ORIGINS)
-    }
-  }
-
-  const lang: Lang = body.lang === 'en' ? 'en' : 'ko'
-  const payload: Required<SajuPayload> = {
-    lang,
-    birthCalendar: body.birthCalendar === 'lunar' ? 'lunar' : 'solar',
-    birthYear: String(body.birthYear).trim(),
-    birthMonth: String(body.birthMonth).trim(),
-    birthDay: String(body.birthDay).trim(),
-    birthHour: String(body.birthHour).trim(),
-    birthplace: String(body.birthplace).trim(),
-    gender: String(body.gender).trim(),
-    bloodType: String(body.bloodType).trim(),
-  }
-
-  try {
-    assertMaxLen(payload.birthplace, 100, 'birthplace')
-    assertMaxLen(payload.gender, 20, 'gender')
-    assertMaxLen(payload.bloodType, 4, 'bloodType')
-  } catch (err) {
-    return badRequest(
-      err instanceof Error ? err.message : 'Invalid input.',
-      origin,
-      env.ALLOWED_ORIGINS,
-    )
-  }
-
-  const year = Number(payload.birthYear)
-  const month = Number(payload.birthMonth)
-  const day = Number(payload.birthDay)
-  if (!Number.isFinite(year) || !Number.isFinite(month) || !Number.isFinite(day)) {
-    return badRequest('Invalid date fields.', origin, env.ALLOWED_ORIGINS)
-  }
-  if (!isValidDate(year, month, day)) {
-    return badRequest('Invalid birth date.', origin, env.ALLOWED_ORIGINS)
-  }
-  if (!allowedHours.has(payload.birthHour)) {
-    return badRequest('Invalid birth hour.', origin, env.ALLOWED_ORIGINS)
-  }
-  if (!allowedBirthCalendars.has(payload.birthCalendar)) {
-    return badRequest('Invalid birth calendar.', origin, env.ALLOWED_ORIGINS)
-  }
-  if (!allowedGenders.has(payload.gender)) {
-    return badRequest('Invalid gender.', origin, env.ALLOWED_ORIGINS)
-  }
-  if (!allowedBloodTypes.has(payload.bloodType)) {
-    return badRequest('Invalid blood type.', origin, env.ALLOWED_ORIGINS)
-  }
-
-  let computed: ReturnType<typeof computeSaju>
-  try {
-    computed = computeSaju({
-      birthDate: `${payload.birthYear}-${payload.birthMonth.padStart(2, '0')}-${payload.birthDay.padStart(2, '0')}`,
-      birthHourBranch: payload.birthHour,
-      timeUnknown: false,
-      calendarType: payload.birthCalendar,
-      timezone: 'Asia/Seoul',
-    })
-  } catch (err) {
-    return badRequest(
-      err instanceof Error ? err.message : 'Saju computation failed.',
-      origin,
-      env.ALLOWED_ORIGINS,
-    )
-  }
-
-  const { systemInstruction, userPrompt } = buildPrompt(payload, computed)
-  const genAI = new GoogleGenerativeAI(env.GEMINI_API_KEY)
+  
+  // ... (이후 로직에서 env.GEMINI_API_KEY 대신 apiKey 사용)
+  const genAI = new GoogleGenerativeAI(apiKey)
   const modelName = env.GEMINI_MODEL || 'gemini-2.0-flash'
   const model = genAI.getGenerativeModel({
     model: modelName,

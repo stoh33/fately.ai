@@ -386,13 +386,25 @@ export const onRequestOptions: PagesFunction<Env> = async ({ request, env }) => 
 
 export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
   const origin = request.headers.get('Origin')
-  if (!env.GEMINI_API_KEY) {
-    const availableKeys = Object.keys(env || {}).join(', ')
+  
+  // 환경 변수 탐색 로직 개선 (대소문자 무시 및 공백 제거)
+  const findEnvKey = (envObj: any, target: string) => {
+    if (!envObj) return null;
+    if (envObj[target]) return envObj[target];
+    const keys = Object.keys(envObj);
+    const found = keys.find(k => k.trim().toUpperCase() === target.toUpperCase());
+    return found ? envObj[found] : null;
+  };
+
+  const apiKey = findEnvKey(env, 'GEMINI_API_KEY');
+  const availableKeys = Object.keys(env || {}).join(', ');
+
+  if (!apiKey) {
     console.error(`GEMINI_API_KEY is missing. Available keys: ${availableKeys || 'none'}`)
     return jsonResponse(
       500,
       { 
-        error: 'GEMINI_API_KEY is not configured.',
+        error: `GEMINI_API_KEY is not configured. (Available keys: [${availableKeys || 'NONE'}])`,
         debug_keys: availableKeys
       },
       origin,
