@@ -10,6 +10,7 @@ const heroPhotoUrl =
 const years = Array.from({ length: 127 }, (_, idx) => 1900 + idx)
 const months = Array.from({ length: 12 }, (_, idx) => idx + 1)
 const days = Array.from({ length: 31 }, (_, idx) => idx + 1)
+const DEFAULT_BIRTH_YEAR = years.includes(1980) ? '1980' : String(years[years.length - 1])
 const hours = [
   { value: '자', label: '자시 (23:00-01:00)' },
   { value: '축', label: '축시 (01:00-03:00)' },
@@ -565,6 +566,9 @@ function App() {
       return { age, gan: formatGan(gan), ji: formatJi(ji), current: isCurrent }
     })
   }, [chartData?.daewoon, currentAge, lastPayload?.birthYear])
+  const currentDaewoon = stableDaewoon.find((item) => item.current)
+  const totalElementCount = elementOrder.reduce((sum, key) => sum + (elementValues?.[key] ?? 0), 0)
+  const dayMaster = safePillars.day?.gan ? formatGan(safePillars.day.gan) : '-'
 
   const daewoonMeaningText = (gan: string, ji: string) => {
     const element = inferElementFromGanJi(gan, ji)
@@ -640,12 +644,9 @@ function App() {
             <div className="form-grid date-grid">
               <label className="field">
                 <span>{t.birthYear}</span>
-                <select name="birthYear" defaultValue="" required>
-                  <option value="" disabled>
-                    {t.selectYear}
-                  </option>
+                <select name="birthYear" defaultValue={DEFAULT_BIRTH_YEAR} required>
                   {years.map((year) => (
-                    <option key={year} value={year}>
+                    <option key={year} value={String(year)}>
                       {lang === 'ko' ? `${year}년` : year}
                     </option>
                   ))}
@@ -734,8 +735,8 @@ function App() {
               </label>
             </div>
 
-            <div className="actions" style={{ display: 'flex', gap: '10px', alignItems: 'center', justifyContent: 'center' }}>
-              <button type="submit" className="primary" disabled={isLoading} style={{ flex: 1 }}>
+            <div className="actions actions-compact">
+              <button type="submit" className="primary" disabled={isLoading}>
                 {isLoading ? t.loading : t.cta}
               </button>
               <button type="button" className="ghost" onClick={handleReset}>
@@ -768,6 +769,24 @@ function App() {
                       <button type="button" className="ghost" onClick={handleSaveImage}>
                         {t.saveImage}
                       </button>
+                    </div>
+                    <div className="analyst-strip">
+                      <article className="analyst-metric">
+                        <span>{lang === 'ko' ? '일간' : 'Day Master'}</span>
+                        <strong>{dayMaster}</strong>
+                      </article>
+                      <article className="analyst-metric">
+                        <span>{lang === 'ko' ? '현재 대운' : 'Current Cycle'}</span>
+                        <strong>{currentDaewoon ? `${currentDaewoon.age}세 ${currentDaewoon.gan}${currentDaewoon.ji}` : '-'}</strong>
+                      </article>
+                      <article className="analyst-metric">
+                        <span>{lang === 'ko' ? '현재 국면' : 'Current Phase'}</span>
+                        <strong>{chartData.lifeSeason || '-'}</strong>
+                      </article>
+                      <article className="analyst-metric">
+                        <span>{lang === 'ko' ? '오행 총량' : 'Element Total'}</span>
+                        <strong>{totalElementCount}</strong>
+                      </article>
                     </div>
 
                     <div className="chart-grid" ref={chartRef}>
@@ -835,7 +854,10 @@ function App() {
                         <div className="element-counts">
                           {elementOrder.map((key) => (
                             <div key={`count-${key}`} className={`element-count-item ${elementClassMap[key]}`}>
-                              <span>{displayLabels[key]}</span>
+                              <span className="element-name">
+                                <i className={`element-swatch ${elementClassMap[key]}`} />
+                                {displayLabels[key]}
+                              </span>
                               <strong>{elementValues?.[key] ?? 0}</strong>
                             </div>
                           ))}
