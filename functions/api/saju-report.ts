@@ -362,7 +362,7 @@ function buildPrompt(params: {
     `${currentYear} 세운 분석 — ${currentYearGanji}年 총평 및 bullets(사업·투자/대인관계/건강/가정·연애).\n` +
     `13) 제5장에는 반드시:\n` +
     `   - ◆ 삶의 방향성 — 핵심 메시지\n` +
-    `   - ◆ 개운법(開運法) — 운을 여는 방법\n` +
+    `   - ◆ 개운법(開운법) — 운을 여는 방법\n` +
     `   - bullets: 색상/방위/음식/활동/수호석/기도·기원\n` +
     `14) 리포트는 3000자 이상으로 충분히 상세하게 작성.\n` +
     `15) 마지막에 아래 세 문장을 반드시 포함:\n` +
@@ -387,7 +387,7 @@ export const onRequestOptions: PagesFunction<Env> = async ({ request, env }) => 
 export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
   const origin = request.headers.get('Origin')
   
-  // 환경 변수 탐색 로직 개선 (대소문자 무시 및 공백 제거)
+  // 1. 환경 변수 확인 (유연한 검색)
   const findEnvKey = (envObj: any, target: string) => {
     if (!envObj) return null;
     if (envObj[target]) return envObj[target];
@@ -400,7 +400,6 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
   const availableKeys = Object.keys(env || {}).join(', ');
 
   if (!apiKey) {
-    console.error(`GEMINI_API_KEY is missing. Available keys: ${availableKeys || 'none'}`)
     return jsonResponse(
       500,
       { 
@@ -412,16 +411,13 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
     )
   }
 
+  // 2. Rate Limit & IP 확인
   const ip = inferIp(request)
   if (!enforceRateLimit(ip)) {
-    return jsonResponse(
-      429,
-      { error: 'Too many requests. Please retry in about a minute.' },
-      origin,
-      env.ALLOWED_ORIGINS,
-    )
+    return jsonResponse(429, { error: 'Too many requests.' }, origin, env.ALLOWED_ORIGINS)
   }
 
+  // 3. 바디 파싱 및 검증
   let body: SajuReportPayload
   try {
     body = (await request.json()) as SajuReportPayload
@@ -431,102 +427,46 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
 
   const clientName = sanitizeText(String(body.clientName || ''), 40)
   const birthDate = sanitizeText(String(body.birthDate || ''), 10)
-  const birthTimeRaw = body.birthTime === null ? null : sanitizeText(String(body.birthTime || ''), 5)
-  const timeUnknown = Boolean(body.timeUnknown)
-  const calendarType = body.calendarType === 'lunar' ? 'lunar' : 'solar'
-  const gender = body.gender || 'other'
-  const timezone = sanitizeText(String(body.timezone || 'Asia/Seoul'), 64)
-  const focus = (body.focus || 'general') as FocusType
-  const notes = sanitizeText(String(body.notes || ''), 600)
-  const bloodType = (body.bloodType || 'unknown') as BloodType
-  const zodiacSignInput = (body.zodiacSign || 'auto') as ZodiacSignInput
-  const golfExperienceLevel = (body.golfExperienceLevel || 'unknown') as GolfExperienceLevel
-  const golfGoal = (body.golfGoal || 'score') as GolfGoal
-  const golfPainOrLimits = sanitizeText(String(body.golfPainOrLimits || ''), 160)
-  const golfNotes = sanitizeText(String(body.golfNotes || ''), 300)
+  if (!clientName || !birthDate) {
+    return jsonResponse(400, { error: 'Missing clientName or birthDate.' }, origin, env.ALLOWED_ORIGINS)
+  }
 
-  if (!clientName) {
-    return jsonResponse(400, { error: 'Missing field: clientName' }, origin, env.ALLOWED_ORIGINS)
-  }
-  if (!birthDate) {
-    return jsonResponse(400, { error: 'Missing field: birthDate' }, origin, env.ALLOWED_ORIGINS)
-  }
-  if (!timeUnknown && !birthTimeRaw) {
-    return jsonResponse(
-      400,
-      { error: 'birthTime is required when timeUnknown is false.' },
-      origin,
-      env.ALLOWED_ORIGINS,
-    )
-  }
-  if (!allowedCalendarTypes.has(calendarType)) {
-    return jsonResponse(400, { error: 'Invalid calendarType.' }, origin, env.ALLOWED_ORIGINS)
-  }
-  if (!allowedGender.has(gender)) {
-    return jsonResponse(400, { error: 'Invalid gender.' }, origin, env.ALLOWED_ORIGINS)
-  }
-  if (!allowedFocus.has(focus)) {
-    return jsonResponse(400, { error: 'Invalid focus.' }, origin, env.ALLOWED_ORIGINS)
-  }
-  if (!allowedBloodType.has(bloodType)) {
-    return jsonResponse(400, { error: 'Invalid bloodType.' }, origin, env.ALLOWED_ORIGINS)
-  }
-  if (!allowedZodiacSignInput.has(zodiacSignInput)) {
-    return jsonResponse(400, { error: 'Invalid zodiacSign.' }, origin, env.ALLOWED_ORIGINS)
-  }
-  if (!allowedGolfExperienceLevel.has(golfExperienceLevel)) {
-    return jsonResponse(
-      400,
-      { error: 'Invalid golfExperienceLevel.' },
-      origin,
-      env.ALLOWED_ORIGINS,
-    )
-  }
-  if (!allowedGolfGoal.has(golfGoal)) {
-    return jsonResponse(400, { error: 'Invalid golfGoal.' }, origin, env.ALLOWED_ORIGINS)
-  }
+  const timezone = sanitizeText(String(body.timezone || 'Asia/Seoul'), 64)
   if (!assertTimezone(timezone)) {
     return jsonResponse(400, { error: 'Invalid timezone.' }, origin, env.ALLOWED_ORIGINS)
   }
 
-  const zodiacResolved =
-    zodiacSignInput === 'auto' ? computeWesternZodiac(birthDate) : zodiacSignInput
-  const zodiacWasAuto = zodiacSignInput === 'auto'
+  // 4. 데이터 계산
+  const zodiacResolved = body.zodiacSign === 'auto' || !body.zodiacSign ? computeWesternZodiac(birthDate) : (body.zodiacSign as ZodiacSign)
+  const zodiacWasAuto = body.zodiacSign === 'auto' || !body.zodiacSign
 
   let computed: ReturnType<typeof computeSaju>
   try {
     computed = computeSaju({
       birthDate,
-      birthTime: timeUnknown ? null : birthTimeRaw,
-      timeUnknown,
-      calendarType,
+      birthTime: body.timeUnknown ? null : body.birthTime,
+      timeUnknown: !!body.timeUnknown,
+      calendarType: body.calendarType || 'solar',
       timezone,
     })
   } catch (err) {
-    return jsonResponse(
-      400,
-      { error: err instanceof Error ? err.message : 'Failed to compute saju.' },
-      origin,
-      env.ALLOWED_ORIGINS,
-    )
+    return jsonResponse(400, { error: 'Failed to compute saju.' }, origin, env.ALLOWED_ORIGINS)
   }
 
   const payload: Required<SajuReportPayload> = {
-    clientName,
-    birthDate,
-    birthTime: timeUnknown ? null : birthTimeRaw,
-    timeUnknown,
-    calendarType,
-    gender,
-    timezone,
-    focus,
-    notes,
-    bloodType,
-    zodiacSign: zodiacSignInput,
-    golfExperienceLevel,
-    golfGoal,
-    golfPainOrLimits,
-    golfNotes,
+    clientName, birthDate, timezone,
+    birthTime: body.timeUnknown ? null : (body.birthTime || null),
+    timeUnknown: !!body.timeUnknown,
+    calendarType: body.calendarType || 'solar',
+    gender: body.gender || 'other',
+    focus: body.focus || 'general',
+    notes: body.notes || '',
+    bloodType: body.bloodType || 'unknown',
+    zodiacSign: body.zodiacSign || 'auto',
+    golfExperienceLevel: body.golfExperienceLevel || 'unknown',
+    golfGoal: body.golfGoal || 'score',
+    golfPainOrLimits: body.golfPainOrLimits || '',
+    golfNotes: body.golfNotes || '',
   }
 
   const generatedAtIso = new Date().toISOString()
@@ -534,86 +474,43 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
   const currentYearGanji = getSexagenaryYear(currentYear)
 
   const { systemInstruction, userPrompt } = buildPrompt({
-    payload,
-    computed,
-    zodiacResolved,
-    zodiacWasAuto,
-    generatedAtIso,
-    currentYear,
-    currentYearGanji,
+    payload, computed, zodiacResolved, zodiacWasAuto, generatedAtIso, currentYear, currentYearGanji
   })
 
-  const genAI = new GoogleGenerativeAI(env.GEMINI_API_KEY)
+  // 5. Gemini API 호출
+  const genAI = new GoogleGenerativeAI(apiKey)
   const modelName = env.GEMINI_MODEL || 'gemini-2.0-flash'
-  const model = genAI.getGenerativeModel({
-    model: modelName,
-    systemInstruction,
-  })
+  const model = genAI.getGenerativeModel({ model: modelName, systemInstruction })
 
   const callGemini = async (prompt: string) => {
-    const controller = new AbortController()
-    const timeoutId = setTimeout(() => controller.abort(), 25000)
-    try {
-      const result = await model.generateContent(prompt)
-      const response = await result.response
-      return response.text().trim() || ''
-    } finally {
-      clearTimeout(timeoutId)
-    }
+    const result = await model.generateContent(prompt)
+    const response = await result.response
+    return response.text().trim() || ''
   }
 
-  let reportMarkdown = ''
   try {
-    reportMarkdown = await callGemini(userPrompt)
+    let reportMarkdown = await callGemini(userPrompt)
     if (!hasRequiredCoreHeaders(reportMarkdown)) {
-      const retryPrompt =
-        userPrompt +
-        '\n\n부록 헤더가 누락되었습니다. 아래 3개 헤더를 정확히 포함해 전체 보고서를 다시 작성하세요.\n' +
-        '- ✦ 부록 1  혈액형 관점의 시사점  ✦\n' +
-        '- ✦ 부록 2  별자리 관점의 시사점  ✦\n' +
-        '- ✦ 부록 3  사주 기반 골프 스타일 분석  ✦'
+      const retryPrompt = userPrompt + '\n\n부록 헤더가 누락되었습니다. 필수 부록을 포함해서 다시 작성하세요.'
       reportMarkdown = await callGemini(retryPrompt)
     }
-  } catch (err) {
-    return jsonResponse(
-      502,
-      { error: err instanceof Error ? err.message : 'Gemini API request failed.' },
-      origin,
-      env.ALLOWED_ORIGINS,
-    )
-  }
 
-  if (!reportMarkdown) {
-    return jsonResponse(502, { error: 'No report generated.' }, origin, env.ALLOWED_ORIGINS)
-  }
+    if (!reportMarkdown) {
+      return jsonResponse(502, { error: 'No report generated.' }, origin, env.ALLOWED_ORIGINS)
+    }
 
-  const formatWarnings = getMissingFormatRules(reportMarkdown)
-
-  const fourPillars = {
-    year: computed.year,
-    month: computed.month,
-    day: computed.day,
-    hour: computed.hour,
-  }
-
-  return jsonResponse(
-    200,
-    {
+    return jsonResponse(200, {
       reportMarkdown,
       meta: {
-        fourPillars,
+        fourPillars: { year: computed.year, month: computed.month, day: computed.day, hour: computed.hour },
         fiveElements: computed.fiveElements,
-        bloodType,
+        bloodType: payload.bloodType,
         zodiacSign: zodiacResolved,
-        zodiacAutoComputed: zodiacWasAuto,
-        formatWarnings,
-        yongsinSuggestion: computed.yongsinSuggestion,
-        gisinSuggestion: computed.gisinSuggestion,
-        calendarAssumptionNote: computed.calendarAssumptionNote || null,
-        generatedAt: generatedAtIso,
-      },
-    },
-    origin,
-    env.ALLOWED_ORIGINS,
-  )
+        generatedAt: generatedAtIso
+      }
+    }, origin, env.ALLOWED_ORIGINS)
+
+  } catch (err) {
+    return jsonResponse(502, { error: 'Gemini API failed.', detail: String(err) }, origin, env.ALLOWED_ORIGINS)
+  }
 }

@@ -184,8 +184,8 @@ function buildPrompt(payload: Required<SajuPayload>, computed: ReturnType<typeof
       `## 7. 2026 Fortune in Detail\n` +
       `Write 3-4 lines each:\n` +
       `- Daily Luck (日운): daily life & health\n` +
-      `- Wealth Luck (財物運): income, investment, spending\n` +
-      `- Authority/Status Luck (官運): work, status, reputation\n` +
+      `- Wealth Luck (財물운): income, investment, spending\n` +
+      `- Authority/Status Luck (官운): work, status, reputation\n` +
       `- Relationship Luck (關係運): social, love, family\n` +
       `(Integrate Saju + Sun Sign + blood type)\n\n` +
       `## 8. 2026 Monthly Fortune\n` +
@@ -268,9 +268,9 @@ function buildPrompt(payload: Required<SajuPayload>, computed: ReturnType<typeof
     `- 핵심 특성 불릿 6~8개로 요약\n\n` +
     `## 7. 2026년 운세 상세\n` +
     `각 항목을 3~4줄로 서술:\n` +
-    `- 일운(日運): 일상·건강\n` +
-    `- 재물운(財物運): 수입·투자·지출\n` +
-    `- 관운(官運): 직장·사회적 지위·명예\n` +
+    `- 일운(日운): 일상·건강\n` +
+    `- 재물운(財물운): 수입·투자·지출\n` +
+    `- 관운(官운): 직장·사회적 지위·명예\n` +
     `- 관계운(關係運): 대인·연애·가족\n` +
     `(사주 + 별자리 + 혈액형 세 관점을 통합해서 서술)\n\n` +
     `## 8. 2026년 월별 운세\n` +
@@ -301,7 +301,7 @@ export const onRequestOptions: PagesFunction<Env> = async ({ request, env }) => 
 export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
   const origin = request.headers.get('Origin')
   
-  // 환경 변수 탐색 로직 개선 (대소문자 무시 및 공백 제거)
+  // 1. 환경 변수 확인
   const findEnvKey = (envObj: any, target: string) => {
     if (!envObj) return null;
     if (envObj[target]) return envObj[target];
@@ -314,7 +314,6 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
   const availableKeys = Object.keys(env || {}).join(', ');
 
   if (!apiKey) {
-    console.error(`GEMINI_API_KEY is missing. Available keys: ${availableKeys || 'none'}`)
     return new Response(JSON.stringify({ 
       error: `GEMINI_API_KEY is not configured. (Available keys: [${availableKeys || 'NONE'}])`,
       debug_keys: availableKeys
@@ -328,14 +327,77 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
     })
   }
 
+  // 2. 바디 파싱
   let body: SajuPayload
   try {
     body = (await request.json()) as SajuPayload
   } catch {
     return badRequest('Invalid JSON body.', origin, env.ALLOWED_ORIGINS)
   }
-  
-  // ... (이후 로직에서 env.GEMINI_API_KEY 대신 apiKey 사용)
+
+  // 3. 필드 검증
+  const requiredFields: Array<keyof SajuPayload> = [
+    'birthCalendar',
+    'birthYear',
+    'birthMonth',
+    'birthDay',
+    'birthHour',
+    'birthplace',
+    'gender',
+    'bloodType',
+  ]
+
+  for (const field of requiredFields) {
+    if (!body[field] || String(body[field]).trim() === '') {
+      return badRequest(`Missing field: ${field}`, origin, env.ALLOWED_ORIGINS)
+    }
+  }
+
+  const lang: Lang = body.lang === 'en' ? 'en' : 'ko'
+  const payload: Required<SajuPayload> = {
+    lang,
+    birthCalendar: body.birthCalendar === 'lunar' ? 'lunar' : 'solar',
+    birthYear: String(body.birthYear).trim(),
+    birthMonth: String(body.birthMonth).trim(),
+    birthDay: String(body.birthDay).trim(),
+    birthHour: String(body.birthHour).trim(),
+    birthplace: String(body.birthplace).trim(),
+    gender: String(body.gender).trim(),
+    bloodType: String(body.bloodType).trim(),
+  }
+
+  try {
+    assertMaxLen(payload.birthplace, 100, 'birthplace')
+    assertMaxLen(payload.gender, 20, 'gender')
+    assertMaxLen(payload.bloodType, 4, 'bloodType')
+  } catch (err) {
+    return badRequest(err instanceof Error ? err.message : 'Invalid input.', origin, env.ALLOWED_ORIGINS)
+  }
+
+  const year = Number(payload.birthYear)
+  const month = Number(payload.birthMonth)
+  const day = Number(payload.birthDay)
+  if (!isValidDate(year, month, day)) {
+    return badRequest('Invalid birth date.', origin, env.ALLOWED_ORIGINS)
+  }
+
+  // 4. 사주 계산 및 프롬프트 생성
+  let computed: ReturnType<typeof computeSaju>
+  try {
+    computed = computeSaju({
+      birthDate: `${payload.birthYear}-${payload.birthMonth.padStart(2, '0')}-${payload.birthDay.padStart(2, '0')}`,
+      birthHourBranch: payload.birthHour,
+      timeUnknown: false,
+      calendarType: payload.birthCalendar,
+      timezone: 'Asia/Seoul',
+    })
+  } catch (err) {
+    return badRequest(err instanceof Error ? err.message : 'Saju computation failed.', origin, env.ALLOWED_ORIGINS)
+  }
+
+  const { systemInstruction, userPrompt } = buildPrompt(payload, computed)
+
+  // 5. Gemini API 호출
   const genAI = new GoogleGenerativeAI(apiKey)
   const modelName = env.GEMINI_MODEL || 'gemini-2.0-flash'
   const model = genAI.getGenerativeModel({
