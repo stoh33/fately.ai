@@ -191,6 +191,18 @@ export default function SajuPage() {
               />
             </label>
 
+            <label className="ai-provider-label">
+              <span>AI 엔진 선택 (추천: Gemini)</span>
+              <select
+                value={aiProvider}
+                onChange={(event) => setAiProvider(event.target.value as AiProvider)}
+                style={{ border: '2px solid #95693e', fontWeight: 'bold' }}
+              >
+                <option value="gemini">Google Gemini (속도·최신)</option>
+                <option value="openai">OpenAI ChatGPT (안정성)</option>
+              </select>
+            </label>
+
             <label>
               <span>생년월일</span>
               <input
@@ -265,17 +277,6 @@ export default function SajuPage() {
                 <option value="wealth">재물</option>
                 <option value="relationship">대인관계</option>
                 <option value="health">건강</option>
-              </select>
-            </label>
-
-            <label className="ai-provider-label">
-              <span>AI 엔진 선택</span>
-              <select
-                value={aiProvider}
-                onChange={(event) => setAiProvider(event.target.value as AiProvider)}
-              >
-                <option value="gemini">Google Gemini (속도·최신)</option>
-                <option value="openai">OpenAI ChatGPT (안정성)</option>
               </select>
             </label>
 
