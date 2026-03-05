@@ -60,66 +60,100 @@ async function callOpenAI(apiKey: string, model: string, systemInstruction: stri
   return data.choices[0].message.content.trim()
 }
 
+function normalizeGeminiModelPath(model: string) {
+  return model.startsWith('models/') ? model : `models/${model}`
+}
+
+async function listGeminiModels(apiKey: string) {
+  const versions = ['v1', 'v1beta']
+  for (const version of versions) {
+    const res = await fetch(`https://generativelanguage.googleapis.com/${version}/models?key=${apiKey}`)
+    if (!res.ok) continue
+    const data = await res.json() as any
+    const models = (data?.models || []) as any[]
+    const available = models
+      .filter((m) => Array.isArray(m?.supportedGenerationMethods) && m.supportedGenerationMethods.includes('generateContent'))
+      .map((m) => String(m?.name || '').replace(/^models\//, ''))
+      .filter(Boolean)
+    if (available.length > 0) return available
+  }
+  return []
+}
+
 // Gemini API 호출 함수 (Edge Runtime 호환 fetch 방식)
 async function callGemini(apiKey: string, modelName: string, systemInstruction: string, userPrompt: string) {
-  const preferredModel = modelName || 'gemini-2.0-flash'
-  const modelCandidates = [...new Set([preferredModel, 'gemini-2.0-flash', 'gemini-1.5-flash'])]
+  const preferredModel = (modelName || '').trim()
+  const hardcodedFallbacks = [
+    'gemini-2.5-flash',
+    'gemini-2.5-flash-lite',
+    'gemini-2.0-flash',
+    'gemini-2.0-flash-lite',
+    'gemini-1.5-flash-latest',
+  ]
+  const discoveredModels = await listGeminiModels(apiKey)
+  const preferredDiscovered = discoveredModels.filter((name) => /flash|pro/i.test(name))
+  const modelCandidates = [...new Set([preferredModel, ...hardcodedFallbacks, ...preferredDiscovered])]
+    .filter(Boolean)
+
   let lastError = 'Gemini API request failed'
+  const versions = ['v1', 'v1beta']
 
   for (const model of modelCandidates) {
-    const res = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          systemInstruction: {
-            parts: [{ text: systemInstruction }]
-          },
-          contents: [
-            { role: 'user', parts: [{ text: userPrompt }] }
-          ],
-          generationConfig: {
-            maxOutputTokens: 4000,
-            temperature: 0.7,
-          }
-        })
+    for (const version of versions) {
+      const res = await fetch(
+        `https://generativelanguage.googleapis.com/${version}/${normalizeGeminiModelPath(model)}:generateContent?key=${apiKey}`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            systemInstruction: {
+              parts: [{ text: systemInstruction }]
+            },
+            contents: [
+              { role: 'user', parts: [{ text: userPrompt }] }
+            ],
+            generationConfig: {
+              maxOutputTokens: 4000,
+              temperature: 0.7,
+            }
+          })
+        }
+      )
+
+      const rawBody = await res.text()
+      let data: any = null
+      try { data = rawBody ? JSON.parse(rawBody) : null } catch {}
+
+      if (!res.ok) {
+        const message = data?.error?.message || rawBody || 'Gemini API request failed'
+        const statusCode = data?.error?.code ?? res.status
+        const statusText = data?.error?.status || ''
+        const detail = `[${statusCode}${statusText ? ` ${statusText}` : ''}] ${message}`
+        const isModelNotFound =
+          Number(statusCode) === 404 ||
+          statusText === 'NOT_FOUND' ||
+          /model.*not found|not found.*model/i.test(message)
+
+        if (isModelNotFound) {
+          lastError = `Gemini 모델(${model})을 찾을 수 없습니다. ${detail}`
+          continue
+        }
+        throw new Error(detail)
       }
-    )
 
-    const rawBody = await res.text()
-    let data: any = null
-    try { data = rawBody ? JSON.parse(rawBody) : null } catch {}
+      const text = data?.candidates?.[0]?.content?.parts
+        ?.map((part: any) => (typeof part?.text === 'string' ? part.text : ''))
+        .join('')
+        .trim()
+      if (text) return text
 
-    if (!res.ok) {
-      const message = data?.error?.message || rawBody || 'Gemini API request failed'
-      const statusCode = data?.error?.code ?? res.status
-      const statusText = data?.error?.status || ''
-      const detail = `[${statusCode}${statusText ? ` ${statusText}` : ''}] ${message}`
-      const isModelNotFound =
-        Number(statusCode) === 404 ||
-        statusText === 'NOT_FOUND' ||
-        /model.*not found|not found.*model/i.test(message)
-
-      if (isModelNotFound) {
-        lastError = `Gemini 모델(${model})을 찾을 수 없습니다. ${detail}`
-        continue
+      const blockReason = data?.promptFeedback?.blockReason || data?.candidates?.[0]?.finishReason
+      if (blockReason) {
+        throw new Error(`Gemini 응답이 차단되었습니다. (${blockReason})`)
       }
-      throw new Error(detail)
+
+      lastError = `Gemini 응답 본문이 비어 있습니다. (model: ${model}, version: ${version})`
     }
-
-    const text = data?.candidates?.[0]?.content?.parts
-      ?.map((part: any) => (typeof part?.text === 'string' ? part.text : ''))
-      .join('')
-      .trim()
-    if (text) return text
-
-    const blockReason = data?.promptFeedback?.blockReason || data?.candidates?.[0]?.finishReason
-    if (blockReason) {
-      throw new Error(`Gemini 응답이 차단되었습니다. (${blockReason})`)
-    }
-
-    lastError = `Gemini 응답 본문이 비어 있습니다. (model: ${model})`
   }
 
   throw new Error(lastError)
@@ -186,7 +220,7 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
     if (aiProvider === 'openai') {
       reportMarkdown = await callOpenAI(apiKey, env.OPENAI_MODEL || 'gpt-4o-mini', systemInstruction, userPrompt)
     } else {
-      reportMarkdown = await callGemini(apiKey, env.GEMINI_MODEL || 'gemini-2.0-flash', systemInstruction, userPrompt)
+      reportMarkdown = await callGemini(apiKey, env.GEMINI_MODEL || 'gemini-2.5-flash', systemInstruction, userPrompt)
     }
 
     if (!reportMarkdown) throw new Error('Empty response')
