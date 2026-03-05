@@ -1,3 +1,4 @@
+import { GoogleGenerativeAI } from '@google/generative-ai'
 import { computeSaju, getSexagenaryYear } from '../lib/saju-calculator'
 
 type PagesContext<Env> = {
@@ -47,14 +48,9 @@ type SajuReportPayload = {
 }
 
 type Env = {
-  OPENAI_API_KEY: string
-  OPENAI_MODEL?: string
-  OPENAI_REASONING_EFFORT?: string
+  GEMINI_API_KEY: string
+  GEMINI_MODEL?: string
   ALLOWED_ORIGINS?: string
-}
-
-type OpenAIResponse = {
-  choices?: Array<{ message?: { content?: string } }>
 }
 
 const corsHeaders = {
@@ -232,7 +228,7 @@ function hasRequiredCoreHeaders(reportMarkdown: string) {
   )
 }
 
-function buildMessages(params: {
+function buildPrompt(params: {
   payload: Required<SajuReportPayload>
   computed: ReturnType<typeof computeSaju>
   zodiacResolved: ZodiacSign
@@ -272,114 +268,110 @@ function buildMessages(params: {
     unknown: '미상',
   }
 
-  return [
-    {
-      role: 'system',
-      content:
-        'You are a professional Korean Saju analyst writing a structured report. ' +
-        'Output language: Korean. Output format: pure Markdown text only (no HTML). ' +
-        'You must strictly mirror the required chapter titles, decorative separators, table sections, and advisory style. ' +
-        'Use mixed Korean + Hanja for key terms: 四柱八字, 天干, 地支, 五行, 大運, 歲運, 用神, 忌神, 開運法.',
-    },
-    {
-      role: 'user',
-      content:
-        `다음 계산 데이터로 "사주팔자 종합 분석 보고서 / 四柱八字 綜合 分析 報告書"를 작성해줘.\n` +
-        `문체: 전문 역술가 보고서 톤. 단정 대신 경향/가능성 중심.\n\n` +
-        `입력 정보\n` +
-        `- 의뢰인: ${payload.clientName}\n` +
-        `- 생년월일: ${payload.birthDate} (${payload.calendarType === 'lunar' ? '음력' : '양력'})\n` +
-        `- 출생시간: ${payload.timeUnknown ? '미상' : payload.birthTime}\n` +
-        `- 성별: ${payload.gender}\n` +
-        `- 시간대: ${payload.timezone}\n` +
-        `- 중점 주제: ${focusLabel[payload.focus]}\n` +
-        `- 추가 메모: ${payload.notes || '없음'}\n` +
-        `- 혈액형: ${payload.bloodType}\n` +
-        `- 별자리(서양): ${zodiacResolved}${zodiacWasAuto ? '(자동 산출)' : '(입력값 사용)'}\n` +
-        `- 골프 숙련도: ${golfExpLabel[payload.golfExperienceLevel]}\n` +
-        `- 골프 목표: ${golfGoalLabel[payload.golfGoal]}\n` +
-        `- 골프 통증/제한: ${payload.golfPainOrLimits || '없음'}\n` +
-        `- 골프 메모: ${payload.golfNotes || '없음'}\n` +
-        `- 작성일: ${generatedAtIso}\n\n` +
-        `사주 계산 결과 (근사 계산)\n` +
-        `- 년주: ${computed.year.stem}${computed.year.branch} (${computed.year.stemHanja}${computed.year.branchHanja}) / ${computed.year.element}\n` +
-        `- 월주: ${computed.month.stem}${computed.month.branch} (${computed.month.stemHanja}${computed.month.branchHanja}) / ${computed.month.element}\n` +
-        `- 일주: ${computed.day.stem}${computed.day.branch} (${computed.day.stemHanja}${computed.day.branchHanja}) / ${computed.day.element}\n` +
-        `- 시주: ${
-          'unknown' in computed.hour
-            ? '미상 (시주 없음)'
-            : `${computed.hour.stem}${computed.hour.branch} (${computed.hour.stemHanja}${computed.hour.branchHanja}) / ${computed.hour.element}`
-        }\n` +
-        `- 오행 분포: 목 ${computed.fiveElements.목.count}(${computed.fiveElements.목.strength}), ` +
-        `화 ${computed.fiveElements.화.count}(${computed.fiveElements.화.strength}), ` +
-        `토 ${computed.fiveElements.토.count}(${computed.fiveElements.토.strength}), ` +
-        `금 ${computed.fiveElements.금.count}(${computed.fiveElements.금.strength}), ` +
-        `수 ${computed.fiveElements.수.count}(${computed.fiveElements.수.strength})\n` +
-        `- 용신(用神) 제안: ${computed.yongsinSuggestion}\n` +
-        `- 기신(忌神) 제안: ${computed.gisinSuggestion}\n` +
-        `- ${computed.calendarAssumptionNote || '달력 변환 이슈 없음'}\n\n` +
-        `추가 반영 지침\n` +
-        `- 혈액형이 unknown이면, 부록1에서 "일반형 해석(참고용)"으로 명시하고 추후 입력 권장 문장을 포함.\n` +
-        `- 시주 미상이면 골프 부록에서 "시주 미상으로 세부 성향은 참고 수준" 문장을 명시.\n` +
-        `- golfNotes에 미스패턴(slice/hook/fat/thin 등)이 있으면 부록3에 반영하고, 없으면 "~일 가능성"으로 추정 표현 사용.\n` +
-        `- 통증/제한 정보가 있으면 무리한 강도 제안 금지, 안전 주의 문장("통증 시 중단/전문가 상담") 포함.\n\n` +
-        `출력 형식 규칙(엄수)\n` +
-        `1) 표지 섹션 포함:\n` +
-        `   - 제목: 사주팔자 종합 분석 보고서 / 四柱八字 綜合 分析 報告書\n` +
-        `   - 의뢰인, 생년월일시, 작성일, 담당 역술가: AI 명리 리포트\n` +
-        `2) 아래 장 제목을 정확히 사용:\n` +
-        `   - ✦ 제 1장  기본 사주 정보  ✦\n` +
-        `   - ✦ 제 2장  성격 · 기질 · 적성 분석  ✦\n` +
-        `   - ✦ 제 3장  대운(大運) 및 세운(歲運) 분석  ✦\n` +
-        `   - ✦ 제 4장  건강 · 재물 · 대인관계  ✦\n` +
-        `   - ✦ 제 5장  종합 조언 및 개운법  ✦\n` +
-        `3) 제5장 뒤에 아래 부록을 반드시 순서대로 추가:\n` +
-        `   - ✦ 부록 1  혈액형 관점의 시사점  ✦\n` +
-        `   - ✦ 부록 2  별자리 관점의 시사점  ✦\n` +
-        `   - ✦ 부록 3  사주 기반 골프 스타일 분석  ✦\n` +
-        `4) 장/절 구분에 "✦ ✦ ✦" 장식 구분선을 반복 사용.\n` +
-        `5) 부록 1 필수 소제목:\n` +
-        `   - ◆ 혈액형 요약(일반 성향)\n` +
-        `   - ◆ 사주(오행/격국/용신·기신)와의 ‘궁합 포인트’\n` +
-        `   - ◆ 주의할 편향\n` +
-        `6) 부록 2 필수 소제목:\n` +
-        `   - ◆ 별자리 성향 키워드 5개\n` +
-        `   - ◆ 사주와의 교차 해석 포인트\n` +
-        `   - ◆ 월간/계절 루틴 제안 3개\n` +
-        `7) 부록 3 필수 소제목(정확히 동일):\n` +
-        `   - ◆ 1) 플레이 성향(코스 매니지먼트)\n` +
-        `   - ◆ 2) 스윙/샷 성향(장점)\n` +
-        `   - ◆ 3) 흔한 실수 패턴(주의점)\n` +
-        `   - ◆ 4) 보완 훈련 루틴(2주 플랜)\n` +
-        `   - ◆ 5) 멘탈/루틴 개운법(골프 버전)\n` +
-        `8) 부록 3 규칙:\n` +
-        `   - 총 bullet 최소 20개\n` +
-        `   - 2주(14일) 플랜: 일일 마이크로 드릴(10~20분) + 연습세션 2회 + 온코스 전략일 1회\n` +
-        `   - 루틴 요소 포함: 멘탈 루틴, 프리샷 루틴, 템포 드릴, 웨지 거리감, 퍼팅 스타트라인\n` +
-        `   - golfGoal=distance면 스피드+시퀀싱 비중, accuracy/consistency면 페이스/컨택/분산 비중\n` +
-        `9) 절대 금지:\n` +
-        `   - 의료 진단/치료 단정, 투자 수익 보장, 미래 사건 단정\n` +
-        `10) 제1장에는 반드시 다음 소제목 포함:\n` +
-        `   - ◆ 생년월일시 및 사주팔자\n` +
-        `   - ▼ 사주원국(四柱原局)\n` +
-        `   - ◆ 오행(五行) 분포 분석\n` +
-        `   - ▼ 오행 강약 분포\n` +
-        `   그리고 표 형식(마크다운 테이블)으로 사주원국/오행표를 제시.\n` +
-        `   사주원국 표의 천간/지지/주(柱) 표기는 반드시 한글+한자 병기 형식으로 작성 (예: 갑(甲), 자(子), 갑자(甲子)).\n` +
-        `11) 제2장에는 성격 bullets, "직업 적성 및 추천 분야", "직업 운용 조언" 포함.\n` +
-        `12) 제3장에는 대운 10년 주기 표(최소 4행), 현재 연령대 문장, ` +
-        `${currentYear} 세운 분석 — ${currentYearGanji}年 총평 및 bullets(사업·투자/대인관계/건강/가정·연애).\n` +
-        `13) 제5장에는 반드시:\n` +
-        `   - ◆ 삶의 방향성 — 핵심 메시지\n` +
-        `   - ◆ 개운법(開運法) — 운을 여는 방법\n` +
-        `   - bullets: 색상/방위/음식/활동/수호석/기도·기원\n` +
-        `14) 리포트는 3000자 이상으로 충분히 상세하게 작성.\n` +
-        `15) 마지막에 아래 세 문장을 반드시 포함:\n` +
-        `   - 사주는 운명 확정이 아닌 성향과 흐름 참고용입니다.\n` +
-        `   - 사주·혈액형·별자리 해석은 참고이며, 최종 선택과 실천은 개인의 몫입니다.\n` +
-        `   - 본 보고서는 의뢰인에게만 제공되며 외부 배포 없이 참고용으로 활용됩니다.`,
-    },
-  ]
+  const systemInstruction =
+    'You are a professional Korean Saju analyst writing a structured report. ' +
+    'Output language: Korean. Output format: pure Markdown text only (no HTML). ' +
+    'You must strictly mirror the required chapter titles, decorative separators, table sections, and advisory style. ' +
+    'Use mixed Korean + Hanja for key terms: 四柱八字, 天干, 地支, 五行, 大運, 歲運, 用神, 忌神, 開運法.'
+
+  const userPrompt =
+    `다음 계산 데이터로 "사주팔자 종합 분석 보고서 / 四柱八字 綜合 分析 報告書"를 작성해줘.\n` +
+    `문체: 전문 역술가 보고서 톤. 단정 대신 경향/가능성 중심.\n\n` +
+    `입력 정보\n` +
+    `- 의뢰인: ${payload.clientName}\n` +
+    `- 생년월일: ${payload.birthDate} (${payload.calendarType === 'lunar' ? '음력' : '양력'})\n` +
+    `- 출생시간: ${payload.timeUnknown ? '미상' : payload.birthTime}\n` +
+    `- 성별: ${payload.gender}\n` +
+    `- 시간대: ${payload.timezone}\n` +
+    `- 중점 주제: ${focusLabel[payload.focus]}\n` +
+    `- 추가 메모: ${payload.notes || '없음'}\n` +
+    `- 혈액형: ${payload.bloodType}\n` +
+    `- 별자리(서양): ${zodiacResolved}${zodiacWasAuto ? '(자동 산출)' : '(입력값 사용)'}\n` +
+    `- 골프 숙련도: ${golfExpLabel[payload.golfExperienceLevel]}\n` +
+    `- 골프 목표: ${golfGoalLabel[payload.golfGoal]}\n` +
+    `- 골프 통증/제한: ${payload.golfPainOrLimits || '없음'}\n` +
+    `- 골프 메모: ${payload.golfNotes || '없음'}\n` +
+    `- 작성일: ${generatedAtIso}\n\n` +
+    `사주 계산 결과 (근사 계산)\n` +
+    `- 년주: ${computed.year.stem}${computed.year.branch} (${computed.year.stemHanja}${computed.year.branchHanja}) / ${computed.year.element}\n` +
+    `- 월주: ${computed.month.stem}${computed.month.branch} (${computed.month.stemHanja}${computed.month.branchHanja}) / ${computed.month.element}\n` +
+    `- 일주: ${computed.day.stem}${computed.day.branch} (${computed.day.stemHanja}${computed.day.branchHanja}) / ${computed.day.element}\n` +
+    `- 시주: ${
+      'unknown' in computed.hour
+        ? '미상 (시주 없음)'
+        : `${computed.hour.stem}${computed.hour.branch} (${computed.hour.stemHanja}${computed.hour.branchHanja}) / ${computed.hour.element}`
+    }\n` +
+    `- 오행 분포: 목 ${computed.fiveElements.목.count}(${computed.fiveElements.목.strength}), ` +
+    `화 ${computed.fiveElements.화.count}(${computed.fiveElements.화.strength}), ` +
+    `토 ${computed.fiveElements.토.count}(${computed.fiveElements.토.strength}), ` +
+    `금 ${computed.fiveElements.금.count}(${computed.fiveElements.금.strength}), ` +
+    `수 ${computed.fiveElements.수.count}(${computed.fiveElements.수.strength})\n` +
+    `- 용신(用神) 제안: ${computed.yongsinSuggestion}\n` +
+    `- 기신(忌神) 제안: ${computed.gisinSuggestion}\n` +
+    `- ${computed.calendarAssumptionNote || '달력 변환 이슈 없음'}\n\n` +
+    `추가 반영 지침\n` +
+    `- 혈액형이 unknown이면, 부록1에서 "일반형 해석(참고용)"으로 명시하고 추후 입력 권장 문장을 포함.\n` +
+    `- 시주 미상이면 골프 부록에서 "시주 미상으로 세부 성향은 참고 수준" 문장을 명시.\n` +
+    `- golfNotes에 미스패턴(slice/hook/fat/thin 등)이 있으면 부록3에 반영하고, 없으면 "~일 가능성"으로 추정 표현 사용.\n` +
+    `- 통증/제한 정보가 있으면 무리한 강도 제안 금지, 안전 주의 문장("통증 시 중단/전문가 상담") 포함.\n\n` +
+    `출력 형식 규칙(엄수)\n` +
+    `1) 표지 섹션 포함:\n` +
+    `   - 제목: 사주팔자 종합 분석 보고서 / 四柱八字 綜合 分析 報告書\n` +
+    `   - 의뢰인, 생년월일시, 작성일, 담당 역술가: AI 명리 리포트\n` +
+    `2) 아래 장 제목을 정확히 사용:\n` +
+    `   - ✦ 제 1장  기본 사주 정보  ✦\n` +
+    `   - ✦ 제 2장  성격 · 기질 · 적성 분석  ✦\n` +
+    `   - ✦ 제 3장  대운(大運) 및 세운(歲運) 분석  ✦\n` +
+    `   - ✦ 제 4장  건강 · 재물 · 대인관계  ✦\n` +
+    `   - ✦ 제 5장  종합 조언 및 개운법  ✦\n` +
+    `3) 제5장 뒤에 아래 부록을 반드시 순서대로 추가:\n` +
+    `   - ✦ 부록 1  혈액형 관점의 시사점  ✦\n` +
+    `   - ✦ 부록 2  별자리 관점의 시사점  ✦\n` +
+    `   - ✦ 부록 3  사주 기반 골프 스타일 분석  ✦\n` +
+    `4) 장/절 구분에 "✦ ✦ ✦" 장식 구분선을 반복 사용.\n` +
+    `5) 부록 1 필수 소제목:\n` +
+    `   - ◆ 혈액형 요약(일반 성향)\n` +
+    `   - ◆ 사주(오행/격국/용신·기신)와의 ‘궁합 포인트’\n` +
+    `   - ◆ 주의할 편향\n` +
+    `6) 부록 2 필수 소제목:\n` +
+    `   - ◆ 별자리 성향 키워드 5개\n` +
+    `   - ◆ 사주와의 교차 해석 포인트\n` +
+    `   - ◆ 월간/계절 루틴 제안 3개\n` +
+    `7) 부록 3 필수 소제목(정확히 동일):\n` +
+    `   - ◆ 1) 플레이 성향(코스 매니지먼트)\n` +
+    `   - ◆ 2) 스윙/샷 성향(장점)\n` +
+    `   - ◆ 3) 흔한 실수 패턴(주의점)\n` +
+    `   - ◆ 4) 보완 훈련 루틴(2주 플랜)\n` +
+    `   - ◆ 5) 멘탈/루틴 개운법(골프 버전)\n` +
+    `8) 부록 3 규칙:\n` +
+    `   - 총 bullet 최소 20개\n` +
+    `   - 2주(14일) 플랜: 일일 마이크로 드릴(10~20분) + 연습세션 2회 + 온코스 전략일 1회\n` +
+    `   - 루틴 요소 포함: 멘탈 루틴, 프리샷 루틴, 템포 드릴, 웨지 거리감, 퍼팅 스타트라인\n` +
+    `   - golfGoal=distance면 스피드+시퀀싱 비중, accuracy/consistency면 페이스/컨택/분산 비중\n` +
+    `9) 절대 금지:\n` +
+    `   - 의료 진단/치료 단정, 투자 수익 보장, 미래 사건 단정\n` +
+    `10) 제1장에는 반드시 다음 소제목 포함:\n` +
+    `   - ◆ 생년월일시 및 사주팔자\n` +
+    `   - ▼ 사주원국(四柱原局)\n` +
+    `   - ◆ 오행(五行) 분포 분석\n` +
+    `   - ▼ 오행 강약 분포\n` +
+    `   그리고 표 형식(마크다운 테이블)으로 사주원국/오행표를 제시.\n` +
+    `   사주원국 표의 천간/지지/주(柱) 표기는 반드시 한글+한자 병기 형식으로 작성 (예: 갑(甲), 자(子), 갑자(甲子)).\n` +
+    `11) 제2장에는 성격 bullets, "직업 적성 및 추천 분야", "직업 운용 조언" 포함.\n` +
+    `12) 제3장에는 대운 10년 주기 표(최소 4행), 현재 연령대 문장, ` +
+    `${currentYear} 세운 분석 — ${currentYearGanji}年 총평 및 bullets(사업·투자/대인관계/건강/가정·연애).\n` +
+    `13) 제5장에는 반드시:\n` +
+    `   - ◆ 삶의 방향성 — 핵심 메시지\n` +
+    `   - ◆ 개운법(開運法) — 운을 여는 방법\n` +
+    `   - bullets: 색상/방위/음식/활동/수호석/기도·기원\n` +
+    `14) 리포트는 3000자 이상으로 충분히 상세하게 작성.\n` +
+    `15) 마지막에 아래 세 문장을 반드시 포함:\n` +
+    `   - 사주는 운명 확정이 아닌 성향과 흐름 참고용입니다.\n` +
+    `   - 사주·혈액형·별자리 해석은 참고이며, 최종 선택과 실천은 개인의 몫입니다.\n` +
+    `   - 본 보고서는 의뢰인에게만 제공되며 외부 배포 없이 참고용으로 활용됩니다.`,
+    }
+
+  return { systemInstruction, userPrompt }
 }
 
 export const onRequestOptions: PagesFunction<Env> = async ({ request, env }) => {
@@ -395,10 +387,10 @@ export const onRequestOptions: PagesFunction<Env> = async ({ request, env }) => 
 
 export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
   const origin = request.headers.get('Origin')
-  if (!env.OPENAI_API_KEY) {
+  if (!env.GEMINI_API_KEY) {
     return jsonResponse(
       500,
-      { error: 'OPENAI_API_KEY is not configured.' },
+      { error: 'GEMINI_API_KEY is not configured.' },
       origin,
       env.ALLOWED_ORIGINS,
     )
@@ -524,7 +516,8 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
   const generatedAtIso = new Date().toISOString()
   const currentYear = new Date().getFullYear()
   const currentYearGanji = getSexagenaryYear(currentYear)
-  const messages = buildMessages({
+
+  const { systemInstruction, userPrompt } = buildPrompt({
     payload,
     computed,
     zodiacResolved,
@@ -534,70 +527,41 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
     currentYearGanji,
   })
 
-  const model = env.OPENAI_MODEL || 'gpt-4.1-mini'
-  const effort = (env.OPENAI_REASONING_EFFORT || 'medium').toLowerCase()
-  const reasoningEffort =
-    effort === 'low' || effort === 'medium' || effort === 'high' ? effort : 'medium'
+  const genAI = new GoogleGenerativeAI(env.GEMINI_API_KEY)
+  const modelName = env.GEMINI_MODEL || 'gemini-1.5-flash'
+  const model = genAI.getGenerativeModel({
+    model: modelName,
+    systemInstruction,
+  })
 
-  const apiBody: Record<string, unknown> = {
-    model,
-    messages,
-  }
-
-  if (model.startsWith('o1') || model.startsWith('o3')) {
-    apiBody.max_completion_tokens = 3400
-    apiBody.reasoning_effort = reasoningEffort
-  } else {
-    apiBody.max_tokens = 3400
-  }
-
-  const callOpenAI = async (requestBody: Record<string, unknown>) => {
+  const callGemini = async (prompt: string) => {
     const controller = new AbortController()
     const timeoutId = setTimeout(() => controller.abort(), 25000)
-    let upstream: Response
     try {
-      upstream = await fetch('https://api.openai.com/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${env.OPENAI_API_KEY}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(requestBody),
-        signal: controller.signal,
-      })
+      const result = await model.generateContent(prompt)
+      const response = await result.response
+      return response.text().trim() || ''
     } finally {
       clearTimeout(timeoutId)
     }
-    if (!upstream.ok) {
-      const detail = await upstream.text()
-      throw new Error(`OpenAI request failed: ${detail}`)
-    }
-    const data = (await upstream.json()) as OpenAIResponse
-    return data.choices?.[0]?.message?.content?.trim() || ''
   }
 
   let reportMarkdown = ''
   try {
-    reportMarkdown = await callOpenAI(apiBody)
+    reportMarkdown = await callGemini(userPrompt)
     if (!hasRequiredCoreHeaders(reportMarkdown)) {
-      const extendedMessages = [...messages]
-      extendedMessages.push({
-        role: 'user',
-        content:
-          '부록 헤더가 누락되었습니다. 아래 3개 헤더를 정확히 포함해 전체 보고서를 다시 작성하세요.\n' +
-          '- ✦ 부록 1  혈액형 관점의 시사점  ✦\n' +
-          '- ✦ 부록 2  별자리 관점의 시사점  ✦\n' +
-          '- ✦ 부록 3  사주 기반 골프 스타일 분석  ✦',
-      })
-      reportMarkdown = await callOpenAI({
-        ...apiBody,
-        messages: extendedMessages,
-      })
+      const retryPrompt =
+        userPrompt +
+        '\n\n부록 헤더가 누락되었습니다. 아래 3개 헤더를 정확히 포함해 전체 보고서를 다시 작성하세요.\n' +
+        '- ✦ 부록 1  혈액형 관점의 시사점  ✦\n' +
+        '- ✦ 부록 2  별자리 관점의 시사점  ✦\n' +
+        '- ✦ 부록 3  사주 기반 골프 스타일 분석  ✦'
+      reportMarkdown = await callGemini(retryPrompt)
     }
   } catch (err) {
     return jsonResponse(
       502,
-      { error: err instanceof Error ? err.message : 'OpenAI request failed.' },
+      { error: err instanceof Error ? err.message : 'Gemini API request failed.' },
       origin,
       env.ALLOWED_ORIGINS,
     )
