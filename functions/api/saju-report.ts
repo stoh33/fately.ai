@@ -62,9 +62,9 @@ async function callOpenAI(apiKey: string, model: string, systemInstruction: stri
 
 // Gemini API 호출 함수 (Edge Runtime 호환 fetch 방식)
 async function callGemini(apiKey: string, modelName: string, systemInstruction: string, userPrompt: string) {
-  const model = modelName || 'gemini-2.0-flash'
+  const model = modelName || 'gemini-1.5-flash'
   const res = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
+    `https://generativelanguage.googleapis.com/v1/models/${model}:generateContent?key=${apiKey}`,
     {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
