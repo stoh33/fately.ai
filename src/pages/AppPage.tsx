@@ -327,6 +327,7 @@ function App() {
   const [isLoading, setIsLoading] = useState(false)
   const [report, setReport] = useState('')
   const [error, setError] = useState('')
+  const [aiProvider, setAiProvider] = useState<'gemini' | 'openai'>('gemini')
   const [lastPayload, setLastPayload] = useState<{
     birthCalendar: string
     birthYear: string
@@ -390,6 +391,7 @@ function App() {
         birthplace: String(formData.get('birthplace') || ''),
         gender: String(formData.get('gender') || ''),
         bloodType: String(formData.get('bloodType') || ''),
+        aiProvider,
       }
       setLastPayload({
         birthCalendar: payload.birthCalendar,
@@ -734,8 +736,24 @@ function App() {
               </label>
             </div>
 
-            <div className="actions">
-              <button type="submit" className="primary" disabled={isLoading}>
+            <div className="actions" style={{ display: 'flex', gap: '10px', alignItems: 'center', justifyContent: 'center' }}>
+              <select 
+                className="ai-provider-select" 
+                value={aiProvider} 
+                onChange={(e) => setAiProvider(e.target.value as any)}
+                style={{ 
+                  padding: '12px', 
+                  borderRadius: '12px', 
+                  border: '2px solid #95693e', 
+                  backgroundColor: '#fffdf9',
+                  fontWeight: 'bold',
+                  color: '#4a3728'
+                }}
+              >
+                <option value="gemini">Gemini (추천)</option>
+                <option value="openai">OpenAI</option>
+              </select>
+              <button type="submit" className="primary" disabled={isLoading} style={{ flex: 1 }}>
                 {isLoading ? t.loading : t.cta}
               </button>
               <button type="button" className="ghost" onClick={handleReset}>
