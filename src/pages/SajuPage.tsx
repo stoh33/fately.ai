@@ -74,7 +74,7 @@ export default function SajuPage() {
   const [reportMarkdown, setReportMarkdown] = useState('')
   const [fiveElements, setFiveElements] = useState<FiveElementsMeta | null>(null)
   const [copied, setCopied] = useState(false)
-  const [aiProvider, setAiProvider] = useState<AiProvider>('gemini')
+  const [aiProvider, setAiProvider] = useState<AiProvider>('openai')
 
   useEffect(() => {
     const cached = localStorage.getItem(STORAGE_KEY)
@@ -192,14 +192,14 @@ export default function SajuPage() {
             </label>
 
             <label className="ai-provider-label">
-              <span>AI 엔진 선택 (추천: Gemini)</span>
+              <span>AI 엔진 선택 (추천: OpenAI)</span>
               <select
                 value={aiProvider}
                 onChange={(event) => setAiProvider(event.target.value as AiProvider)}
                 style={{ border: '2px solid #95693e', fontWeight: 'bold' }}
               >
+                <option value="openai">OpenAI ChatGPT (안정성·추천)</option>
                 <option value="gemini">Google Gemini (속도·최신)</option>
-                <option value="openai">OpenAI ChatGPT (안정성)</option>
               </select>
             </label>
 
