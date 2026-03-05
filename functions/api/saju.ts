@@ -60,7 +60,7 @@ async function callGemini(apiKey: string, modelName: string, systemInstruction: 
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        systemInstruction: {
+        system_instruction: {
           parts: [{ text: systemInstruction }]
         },
         contents: [
