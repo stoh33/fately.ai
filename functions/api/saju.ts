@@ -401,7 +401,7 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
 
   const { systemInstruction, userPrompt } = buildPrompt(payload, computed)
   const genAI = new GoogleGenerativeAI(env.GEMINI_API_KEY)
-  const modelName = env.GEMINI_MODEL || 'gemini-1.5-flash'
+  const modelName = env.GEMINI_MODEL || 'gemini-flash-latest'
   const model = genAI.getGenerativeModel({
     model: modelName,
     systemInstruction,
