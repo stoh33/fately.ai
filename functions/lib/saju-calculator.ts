@@ -59,6 +59,12 @@ const BRANCH_HANJA_TO_HANGUL: Record<string, string> = {
   '午': '오', '未': '미', '申': '신', '酉': '유', '戌': '술', '亥': '해'
 }
 
+// 간지 시간을 숫자로 매핑 (대표 시간값)
+const BRANCH_TO_TIME: Record<string, string> = {
+  '자': '00:00', '축': '02:00', '인': '04:00', '묘': '06:00', '진': '08:00', '사': '10:00',
+  '오': '12:00', '미': '14:00', '신': '16:00', '유': '18:00', '술': '20:00', '해': '22:00'
+}
+
 export const BRANCHES = ['자', '축', '인', '묘', '진', '사', '오', '미', '신', '유', '술', '해'] as const
 
 function pad(value: number) {
@@ -116,12 +122,18 @@ export function computeSaju(input: SajuInput): SajuComputation {
     throw new Error('Invalid birthDate format. Use YYYY-MM-DD.')
   }
 
+  // birthTime이 없고 birthHourBranch(자,축,인..)만 있는 경우 시간 숫자로 변환
+  let timeStr = input.birthTime
+  if (!timeStr && input.birthHourBranch && BRANCH_TO_TIME[input.birthHourBranch]) {
+    timeStr = BRANCH_TO_TIME[input.birthHourBranch]
+  }
+
   let solar: Solar
   if (input.calendarType === 'lunar') {
     const lunar = Lunar.fromYmd(dateParts.year, dateParts.month, dateParts.day)
     solar = lunar.getSolar()
   } else {
-    const time = parseBirthTime(input.birthTime || null)
+    const time = parseBirthTime(timeStr || null)
     // Apply 30 minute offset for Korea (UTC+9 is 30 mins ahead of solar time at 127.5 longitude)
     let hour = time.hour
     let minute = time.minute - 30
