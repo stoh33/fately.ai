@@ -3,7 +3,6 @@ import '../styles/saju-page.css'
 
 type FocusType = 'career' | 'wealth' | 'relationship' | 'health' | 'general'
 type BloodType = 'A' | 'B' | 'O' | 'AB' | 'unknown'
-type AiProvider = 'openai' | 'gemini'
 type ZodiacSign =
   | 'auto'
   | 'Aries'
@@ -74,7 +73,6 @@ export default function SajuPage() {
   const [reportMarkdown, setReportMarkdown] = useState('')
   const [fiveElements, setFiveElements] = useState<FiveElementsMeta | null>(null)
   const [copied, setCopied] = useState(false)
-  const [aiProvider, setAiProvider] = useState<AiProvider>('openai')
 
   useEffect(() => {
     const cached = localStorage.getItem(STORAGE_KEY)
@@ -123,7 +121,6 @@ export default function SajuPage() {
           golfGoal,
           golfPainOrLimits,
           golfNotes,
-          aiProvider,
         }),
       })
 
@@ -189,18 +186,6 @@ export default function SajuPage() {
                 placeholder="예: 김민준"
                 required
               />
-            </label>
-
-            <label className="ai-provider-label">
-              <span>AI 엔진 선택 (추천: OpenAI)</span>
-              <select
-                value={aiProvider}
-                onChange={(event) => setAiProvider(event.target.value as AiProvider)}
-                style={{ border: '2px solid #95693e', fontWeight: 'bold' }}
-              >
-                <option value="openai">OpenAI ChatGPT (안정성·추천)</option>
-                <option value="gemini">Google Gemini (속도·최신)</option>
-              </select>
             </label>
 
             <label>
