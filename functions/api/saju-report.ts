@@ -387,10 +387,14 @@ export const onRequestOptions: PagesFunction<Env> = async ({ request, env }) => 
 export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
   const origin = request.headers.get('Origin')
   if (!env.GEMINI_API_KEY) {
-    console.error('GEMINI_API_KEY is missing from environment variables')
+    const availableKeys = Object.keys(env || {}).join(', ')
+    console.error(`GEMINI_API_KEY is missing. Available keys: ${availableKeys || 'none'}`)
     return jsonResponse(
       500,
-      { error: 'GEMINI_API_KEY is not configured.' },
+      { 
+        error: 'GEMINI_API_KEY is not configured.',
+        debug_keys: availableKeys
+      },
       origin,
       env.ALLOWED_ORIGINS,
     )
