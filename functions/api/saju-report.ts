@@ -64,12 +64,12 @@ async function callOpenAI(apiKey: string, model: string, systemInstruction: stri
 async function callGemini(apiKey: string, modelName: string, systemInstruction: string, userPrompt: string) {
   const model = modelName || 'gemini-1.5-flash'
   const res = await fetch(
-    `https://generativelanguage.googleapis.com/v1/models/${model}:generateContent?key=${apiKey}`,
+    `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
     {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        system_instruction: {
+        systemInstruction: {
           parts: [{ text: systemInstruction }]
         },
         contents: [
