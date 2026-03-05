@@ -97,11 +97,11 @@ async function callGemini(apiKey: string, modelName: string, systemInstruction: 
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            systemInstruction: {
-              parts: [{ text: systemInstruction }]
-            },
             contents: [
-              { role: 'user', parts: [{ text: userPrompt }] }
+              {
+                role: 'user',
+                parts: [{ text: `# 시스템 지시\n${systemInstruction}\n\n# 사용자 요청\n${userPrompt}` }]
+              }
             ],
             generationConfig: {
               maxOutputTokens: 4000,
