@@ -72,14 +72,30 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
   try { body = await request.json() } catch { return new Response('Invalid JSON', { status: 400 }) }
 
   const aiProvider = (body.aiProvider || 'gemini') as AiProvider
-  let apiKey = ''
-  if (aiProvider === 'gemini') {
-    apiKey = env.GEMINI_API_KEY || (Object.entries(env).find(([k]) => k.toUpperCase() === 'GEMINI_API_KEY')?.[1] as string)
-  } else {
-    apiKey = env.OPENAI_API_KEY || (Object.entries(env).find(([k]) => k.toUpperCase() === 'OPENAI_API_KEY')?.[1] as string)
-  }
+  
+  // 환경 변수 찾는 로직 강화
+  const getEnvValue = (obj: any, target: string) => {
+    if (!obj) return null;
+    // 1. 정확한 이름으로 찾기
+    if (obj[target]) return obj[target];
+    // 2. 대소문자 무시하고 찾기
+    const foundKey = Object.keys(obj).find(k => k.toUpperCase() === target.toUpperCase());
+    return foundKey ? obj[foundKey] : null;
+  };
 
-  if (!apiKey) return new Response(`${aiProvider.toUpperCase()} API Key not configured`, { status: 500 })
+  const targetKeyName = aiProvider === 'gemini' ? 'GEMINI_API_KEY' : 'OPENAI_API_KEY';
+  const apiKey = getEnvValue(env, targetKeyName);
+
+  if (!apiKey) {
+    const availableKeys = Object.keys(env || {}).join(', ');
+    return new Response(JSON.stringify({ 
+      error: `${aiProvider.toUpperCase()} API Key not configured.`,
+      debug: `Looking for: ${targetKeyName}, Available: [${availableKeys || 'NONE'}]`
+    }), { 
+      status: 500,
+      headers: { ...corsHeaders, ...buildCorsHeaders(origin, env.ALLOWED_ORIGINS), 'content-type': 'application/json' }
+    })
+  }
 
   let computed: any
   try {
@@ -92,7 +108,7 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
     })
   } catch (err) { return new Response('Saju computation failed', { status: 400 }) }
 
-  const systemInstruction = '당신은 전문 역술가입니다.'
+  const systemInstruction = '당신은 전문 역술가입니다. 사주를 분석하여 상세 리포트를 작성하세요.'
   const userPrompt = `사주원국: ${JSON.stringify(computed)}. 분석해줘.`
 
   try {
@@ -107,6 +123,9 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
       headers: { ...corsHeaders, ...buildCorsHeaders(origin, env.ALLOWED_ORIGINS), 'content-type': 'application/json' },
     })
   } catch (err: any) {
-    return new Response(JSON.stringify({ error: String(err) }), { status: 502 })
+    return new Response(JSON.stringify({ error: String(err) }), { 
+      status: 502,
+      headers: { ...corsHeaders, ...buildCorsHeaders(origin, env.ALLOWED_ORIGINS), 'content-type': 'application/json' }
+    })
   }
 }
