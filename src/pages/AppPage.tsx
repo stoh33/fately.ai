@@ -327,7 +327,7 @@ function App() {
   const [isLoading, setIsLoading] = useState(false)
   const [report, setReport] = useState('')
   const [error, setError] = useState('')
-  const [aiProvider, setAiProvider] = useState<'gemini' | 'openai'>('openai')
+  const [aiProvider, setAiProvider] = useState<'gemini' | 'openai'>('gemini')
   const [lastPayload, setLastPayload] = useState<{
     birthCalendar: string
     birthYear: string
@@ -750,8 +750,8 @@ function App() {
                   color: '#4a3728'
                 }}
               >
-                <option value="openai">OpenAI (추천)</option>
-                <option value="gemini">Gemini</option>
+                <option value="gemini">Gemini (추천)</option>
+                <option value="openai">OpenAI</option>
               </select>
               <button type="submit" className="primary" disabled={isLoading} style={{ flex: 1 }}>
                 {isLoading ? t.loading : t.cta}

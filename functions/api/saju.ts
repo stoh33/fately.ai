@@ -129,7 +129,7 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
     if (aiProvider === 'openai') {
       report = await callOpenAI(apiKey, env.OPENAI_MODEL || 'gpt-4o-mini', systemInstruction, userPrompt)
     } else {
-      report = await callGemini(apiKey, env.GEMINI_MODEL || 'gemini-2.0-flash', systemInstruction, userPrompt)
+      report = await callGemini(apiKey, env.GEMINI_MODEL || 'gemini-1.5-flash', systemInstruction, userPrompt)
     }
     return new Response(JSON.stringify({ report }), {
       status: 200,
