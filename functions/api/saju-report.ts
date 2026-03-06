@@ -145,11 +145,12 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
 사주 분석 보고서를 작성해줘.
 의뢰인: ${body.clientName || '의뢰인'}, 생년월일: ${body.birthDate}, 성별: ${body.gender || '미상'}, 혈액형: ${body.bloodType || '미상'}
 별자리: ${selectedZodiac} (입력값: ${body.zodiacSign || 'auto'}, 기준: ${body.calendarType === 'lunar' ? '양력 환산 필요 가능성' : '양력 기준'})
-사주원국: 년(${computed.year.stem}${computed.year.branch}), 월(${computed.month.stem}${computed.month.branch}), 일(${computed.day.stem}${computed.day.branch}), 시(${computed.hour.stem || '미상'}${computed.hour.branch || ''})
+사주원국 데이터: 년(${computed.year.stem}${computed.year.branch}), 월(${computed.month.stem}${computed.month.branch}), 일(${computed.day.stem}${computed.day.branch}), 시(${computed.hour.stem || '미상'}${computed.hour.branch || ''})
 오행 분포: 목(${computed.fiveElements.목.count}), 화(${computed.fiveElements.화.count}), 토(${computed.fiveElements.토.count}), 금(${computed.fiveElements.금.count}), 수(${computed.fiveElements.수.count})
 
 다음 내용을 상세히 포함해줘:
-1. 사주원국 분석 및 오행 특징
+1. 사주원국 핵심 분석
+   - 주의: 시각적 표는 UI에서 별도로 제공되므로, 텍스트로 년/월/일/시주를 나열하지 마세요. 바로 분석 내용(오행의 조화, 특이사항 등)으로 시작하세요.
 2. 성격 및 기질 분석
 3. 대운 및 2026년(${currentYearGanji}) 운세 상세
 4. 올해 종합사주 (${currentYear}년 전체 흐름: 커리어/재물/관계/건강)

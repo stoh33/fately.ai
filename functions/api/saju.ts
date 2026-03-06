@@ -138,6 +138,7 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
 
 반드시 아래 순서로 작성:
 1) 사주 핵심 해석
+   - 주의: 시각적 표는 UI에서 별도로 제공되므로, 텍스트로 년/월/일/시주를 나열하지 마세요. 바로 분석 내용으로 시작하세요.
 2) 오행 균형/불균형 및 성향
 3) 올해 종합사주 (${currentYear}년 전체 흐름: 커리어/재물/관계/건강)
 4) 올해 월별 사주 (${currentYear}년 1~12월)

@@ -1,4 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
+import { marked } from 'marked'
+import DOMPurify from 'dompurify'
 import '../styles/saju-page.css'
 
 type FocusType = 'career' | 'wealth' | 'relationship' | 'health' | 'general'
@@ -90,6 +92,7 @@ function SajuWongukTable({ fourPillars }: { fourPillars: FourPillars }) {
 
   return (
     <div className="saju-wonguk-container">
+      <h3>1. 사주원국 (四柱元局)</h3>
       <table className="saju-wonguk-table">
         <thead>
           <tr>
@@ -102,7 +105,7 @@ function SajuWongukTable({ fourPillars }: { fourPillars: FourPillars }) {
           <tr>
             {pillars.map((p, i) => {
               if ('unknown' in p.value) {
-                return <td key={i} rowSpan={2}>{p.value.label}</td>
+                return <td key={i} rowSpan={2} className="unknown-cell">{p.value.label}</td>
               }
               return (
                 <td key={i} className={getElementClass(p.value.stemElement)}>
@@ -179,6 +182,14 @@ export default function SajuPage() {
   }, [])
 
   const birthTimeValue = useMemo(() => (timeUnknown ? null : birthTime), [timeUnknown, birthTime])
+
+  const renderedMarkdown = useMemo(() => {
+    if (!reportMarkdown) return ''
+    // "1. 사주원국 분석" 섹션이 텍스트로 중복될 수 있으므로, 해당 섹션의 시작 부분을 찾아 그 이후부터 렌더링하거나
+    // 프롬프트에서 조절하는 것이 좋지만, 여기서는 단순히 마크다운을 렌더링합니다.
+    const html = marked.parse(reportMarkdown) as string
+    return DOMPurify.sanitize(html)
+  }, [reportMarkdown])
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault()
@@ -467,31 +478,41 @@ export default function SajuPage() {
         {error ? <p className="error">{error}</p> : null}
 
         <section className="report-panel">
-          <h2>리포트 미리보기</h2>
+          <h2>사주 분석 리포트</h2>
           
-          {fourPillars ? <SajuWongukTable fourPillars={fourPillars} /> : null}
+          <div className="report-content">
+            {fourPillars ? <SajuWongukTable fourPillars={fourPillars} /> : null}
 
-          {fiveElements ? (
-            <div className="elements-bar" aria-label="오행 분포 색상 요약">
-              {(
-                [
-                  ['목', 'wood'],
-                  ['화', 'fire'],
-                  ['토', 'earth'],
-                  ['금', 'metal'],
-                  ['수', 'water'],
-                ] as Array<[ElementKey, string]>
-              ).map(([key, klass]) => (
-                <div key={key} className={`element-chip ${klass}`}>
-                  <strong>{key}</strong>
-                  <span>
-                    {fiveElements[key].count} / {fiveElements[key].strength}
-                  </span>
-                </div>
-              ))}
-            </div>
-          ) : null}
-          <pre>{reportMarkdown || '아직 생성된 리포트가 없습니다.'}</pre>
+            {fiveElements ? (
+              <div className="elements-bar" aria-label="오행 분포 색상 요약">
+                {(
+                  [
+                    ['목', 'wood'],
+                    ['화', 'fire'],
+                    ['토', 'earth'],
+                    ['금', 'metal'],
+                    ['수', 'water'],
+                  ] as Array<[ElementKey, string]>
+                ).map(([key, klass]) => (
+                  <div key={key} className={`element-chip ${klass}`}>
+                    <strong>{key}</strong>
+                    <span>
+                      {fiveElements[key].count} / {fiveElements[key].strength}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            ) : null}
+
+            {renderedMarkdown ? (
+              <div 
+                className="markdown-body" 
+                dangerouslySetInnerHTML={{ __html: renderedMarkdown }} 
+              />
+            ) : (
+              <p className="no-report">아직 생성된 리포트가 없습니다.</p>
+            )}
+          </div>
         </section>
       </main>
     </div>
