@@ -34,6 +34,8 @@ const copy = {
     subtitleExtra: '',
     sectionTitle: '기본 정보',
     sectionHelp: '태어난 순간의 기운을 정확히 담아주세요.',
+    clientName: '이름',
+    namePlaceholder: '예: 김민준',
     birthYear: '생년',
     birthMonth: '월',
     birthDay: '일',
@@ -75,6 +77,8 @@ const copy = {
     subtitleExtra: '',
     sectionTitle: 'Basic Details',
     sectionHelp: 'Please enter the exact birth moment.',
+    clientName: 'Name',
+    namePlaceholder: 'e.g., John Doe',
     birthYear: 'Year',
     birthMonth: 'Month',
     birthDay: 'Day',
@@ -495,6 +499,7 @@ function App() {
     try {
       const payload = {
         lang,
+        clientName: String(formData.get('clientName') || ''),
         birthCalendar: String(formData.get('birthCalendar') || ''),
         birthYear: String(formData.get('birthYear') || ''),
         birthMonth: String(formData.get('birthMonth') || ''),
@@ -749,6 +754,16 @@ function App() {
           </header>
 
           <form className="form" onSubmit={handleSubmit}>
+            <label className="field">
+              <span>{t.clientName}</span>
+              <input
+                type="text"
+                name="clientName"
+                placeholder={t.namePlaceholder}
+                required
+              />
+            </label>
+
             <label className="field">
               <span>{t.birthCalendar}</span>
               <select name="birthCalendar" defaultValue="solar" required>
