@@ -1,3 +1,11 @@
+:root {
+  --color-wood: #4CAF50;
+  --color-fire: #F44336;
+  --color-earth: #FF9800;
+  --color-metal: #9E9E9E;
+  --color-water: #2196F3;
+}
+
 .saju-page {
   min-height: 100vh;
   background: #f2e7d2;
@@ -184,33 +192,33 @@
 }
 
 .element-chip.wood {
-  background: rgba(112, 142, 88, 0.15);
-  color: #2f4429;
-  border-color: rgba(112, 142, 88, 0.3);
+  background: color-mix(in srgb, var(--color-wood) 15%, transparent);
+  color: var(--color-wood);
+  border-color: color-mix(in srgb, var(--color-wood) 40%, transparent);
 }
 
 .element-chip.fire {
-  background: rgba(154, 89, 61, 0.12);
-  color: #4d2a19;
-  border-color: rgba(154, 89, 61, 0.3);
+  background: color-mix(in srgb, var(--color-fire) 15%, transparent);
+  color: var(--color-fire);
+  border-color: color-mix(in srgb, var(--color-fire) 40%, transparent);
 }
 
 .element-chip.earth {
-  background: rgba(179, 144, 86, 0.15);
-  color: #4f3a1e;
-  border-color: rgba(179, 144, 86, 0.3);
+  background: color-mix(in srgb, var(--color-earth) 15%, transparent);
+  color: var(--color-earth);
+  border-color: color-mix(in srgb, var(--color-earth) 40%, transparent);
 }
 
 .element-chip.metal {
-  background: rgba(168, 156, 137, 0.15);
-  color: #3f3527;
-  border-color: rgba(168, 156, 137, 0.3);
+  background: color-mix(in srgb, var(--color-metal) 15%, transparent);
+  color: var(--color-metal);
+  border-color: color-mix(in srgb, var(--color-metal) 40%, transparent);
 }
 
 .element-chip.water {
-  background: rgba(98, 117, 137, 0.12);
-  color: #223346;
-  border-color: rgba(98, 117, 137, 0.3);
+  background: color-mix(in srgb, var(--color-water) 15%, transparent);
+  color: var(--color-water);
+  border-color: color-mix(in srgb, var(--color-water) 40%, transparent);
 }
 
 .saju-wonguk-container {
@@ -260,12 +268,75 @@
   font-weight: 600;
 }
 
-/* Five Elements Background Colors */
-.bg-wood { background: #e8f5e9; color: #1b5e20; border: 1px solid #c8e6c9; }
-.bg-fire { background: #ffebee; color: #b71c1c; border: 1px solid #ffcdd2; }
-.bg-earth { background: #fff8e1; color: #5d4037; border: 1px solid #ffecb3; }
-.bg-metal { background: #f5f5f5; color: #424242; border: 1px solid #e0e0e0; }
-.bg-water { background: #e3f2fd; color: #0d47a1; border: 1px solid #bbdefb; }
+/* Five Elements Background Colors for Table Cells */
+.bg-wood {
+  background: color-mix(in srgb, var(--color-wood) 15%, transparent) !important;
+  color: var(--color-wood) !important;
+  border: 1px solid color-mix(in srgb, var(--color-wood) 40%, transparent) !important;
+}
+.bg-fire {
+  background: color-mix(in srgb, var(--color-fire) 15%, transparent) !important;
+  color: var(--color-fire) !important;
+  border: 1px solid color-mix(in srgb, var(--color-fire) 40%, transparent) !important;
+}
+.bg-earth {
+  background: color-mix(in srgb, var(--color-earth) 15%, transparent) !important;
+  color: var(--color-earth) !important;
+  border: 1px solid color-mix(in srgb, var(--color-earth) 40%, transparent) !important;
+}
+.bg-metal {
+  background: color-mix(in srgb, var(--color-metal) 15%, transparent) !important;
+  color: var(--color-metal) !important;
+  border: 1px solid color-mix(in srgb, var(--color-metal) 40%, transparent) !important;
+}
+.bg-water {
+  background: color-mix(in srgb, var(--color-water) 15%, transparent) !important;
+  color: var(--color-water) !important;
+  border: 1px solid color-mix(in srgb, var(--color-water) 40%, transparent) !important;
+}
+
+/* Individual Hanja Character Styling */
+.hanja-styled {
+  display: inline-block;
+  border-radius: 4px;
+  padding: 2px 6px;
+  font-weight: 700;
+  margin: 0 1px;
+}
+
+.hanja-styled.wood {
+  color: var(--color-wood);
+  background-color: color-mix(in srgb, var(--color-wood) 15%, transparent);
+  border: 1px solid color-mix(in srgb, var(--color-wood) 40%, transparent);
+}
+.hanja-styled.fire {
+  color: var(--color-fire);
+  background-color: color-mix(in srgb, var(--color-fire) 15%, transparent);
+  border: 1px solid color-mix(in srgb, var(--color-fire) 40%, transparent);
+}
+.hanja-styled.earth {
+  color: var(--color-earth);
+  background-color: color-mix(in srgb, var(--color-earth) 15%, transparent);
+  border: 1px solid color-mix(in srgb, var(--color-earth) 40%, transparent);
+}
+.hanja-styled.metal {
+  color: var(--color-metal);
+  background-color: color-mix(in srgb, var(--color-metal) 15%, transparent);
+  border: 1px solid color-mix(in srgb, var(--color-metal) 40%, transparent);
+}
+.hanja-styled.water {
+  color: var(--color-water);
+  background-color: color-mix(in srgb, var(--color-water) 15%, transparent);
+  border: 1px solid color-mix(in srgb, var(--color-water) 40%, transparent);
+}
+
+.saju-hide-gan-list {
+  display: flex;
+  justify-content: center;
+  gap: 2px;
+  flex-wrap: wrap;
+  margin-top: 4px;
+}
 
 .report-content {
   background: #fffdf9;

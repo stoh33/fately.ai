@@ -21,6 +21,7 @@ export type PillarValue = {
   branchHanja: string
   branchElement: ElementKey
   symbol: string
+  hideGan: Array<{ hanja: string; hangul: string; element: ElementKey }>
 }
 
 export type SajuComputation = {
@@ -101,11 +102,21 @@ function parseBirthTime(value: string | null) {
   }
 }
 
-function getPillarValue(gan: string, zhi: string): PillarValue {
+function getPillarValue(gan: string, zhi: string, hideGanList: string[]): PillarValue {
   const stem = STEM_HANJA_TO_HANGUL[gan]
   const branch = BRANCH_HANJA_TO_HANGUL[zhi]
   const stemElement = STEM_ELEMENT[stem]
   const branchElement = BRANCH_ELEMENT[zhi]
+  
+  const hideGan = hideGanList.map(hGan => {
+    const hHangul = STEM_HANJA_TO_HANGUL[hGan]
+    return {
+      hanja: hGan,
+      hangul: hHangul,
+      element: STEM_ELEMENT[hHangul]
+    }
+  })
+
   return {
     stem,
     stemHanja: gan,
@@ -114,6 +125,7 @@ function getPillarValue(gan: string, zhi: string): PillarValue {
     branchHanja: zhi,
     branchElement,
     symbol: ELEMENT_SYMBOL[stemElement],
+    hideGan
   }
 }
 
@@ -156,9 +168,9 @@ export function computeSaju(input: SajuInput): SajuComputation {
   const lunar = solar.getLunar()
   const eightChar = lunar.getEightChar()
 
-  const yearPillar = getPillarValue(eightChar.getYearGan(), eightChar.getYearZhi())
-  const monthPillar = getPillarValue(eightChar.getMonthGan(), eightChar.getMonthZhi())
-  const dayPillar = getPillarValue(eightChar.getDayGan(), eightChar.getDayZhi())
+  const yearPillar = getPillarValue(eightChar.getYearGan(), eightChar.getYearZhi(), eightChar.getYearHideGan())
+  const monthPillar = getPillarValue(eightChar.getMonthGan(), eightChar.getMonthZhi(), eightChar.getMonthHideGan())
+  const dayPillar = getPillarValue(eightChar.getDayGan(), eightChar.getDayZhi(), eightChar.getDayHideGan())
   
   let hourPillar: SajuComputation['hour']
   if (input.timeUnknown) {
@@ -166,7 +178,7 @@ export function computeSaju(input: SajuInput): SajuComputation {
   } else {
     const hGan = eightChar.getTimeGan()
     const hZhi = eightChar.getTimeZhi()
-    const p = getPillarValue(hGan, hZhi)
+    const p = getPillarValue(hGan, hZhi, eightChar.getTimeHideGan())
     hourPillar = {
       ...p,
       timeBranchLabel: `${p.branch}시`,
@@ -176,9 +188,10 @@ export function computeSaju(input: SajuInput): SajuComputation {
   const elementCount: Record<ElementKey, number> = { 목: 0, 화: 0, 토: 0, 금: 0, 수: 0 }
   
   const addPillarElements = (gan: string, zhi: string) => {
-    const p = getPillarValue(gan, zhi)
-    elementCount[p.stemElement] += 1
-    elementCount[p.branchElement] += 1
+    const stem = STEM_HANJA_TO_HANGUL[gan]
+    const branch = BRANCH_HANJA_TO_HANGUL[zhi]
+    elementCount[STEM_ELEMENT[stem]] += 1
+    elementCount[BRANCH_ELEMENT[zhi]] += 1
   }
 
   addPillarElements(eightChar.getYearGan(), eightChar.getYearZhi())

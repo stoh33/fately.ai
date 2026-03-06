@@ -24,6 +24,8 @@ type GolfGoal = 'distance' | 'accuracy' | 'consistency' | 'mental' | 'score' | '
 
 type ElementKey = '목' | '화' | '토' | '금' | '수'
 
+type HideGanItem = { hanja: string; hangul: string; element: ElementKey }
+
 type PillarValue = {
   stem: string
   stemHanja: string
@@ -32,6 +34,7 @@ type PillarValue = {
   branchHanja: string
   branchElement: ElementKey
   symbol: string
+  hideGan: HideGanItem[]
 }
 
 type FourPillars = {
@@ -73,13 +76,18 @@ function normalizeFiveElements(
 
 const getElementClass = (element: string) => {
   switch (element) {
-    case '목': return 'bg-wood'
-    case '화': return 'bg-fire'
-    case '토': return 'bg-earth'
-    case '금': return 'bg-metal'
-    case '수': return 'bg-water'
+    case '목': return 'wood'
+    case '화': return 'fire'
+    case '토': return 'earth'
+    case '금': return 'metal'
+    case '수': return 'water'
     default: return ''
   }
+}
+
+function HanjaSpan({ hanja, element }: { hanja: string; element: string }) {
+  const colorClass = getElementClass(element)
+  return <span className={`hanja-styled ${colorClass}`}>{hanja}</span>
 }
 
 function SajuWongukTable({ fourPillars }: { fourPillars: FourPillars }) {
@@ -108,7 +116,7 @@ function SajuWongukTable({ fourPillars }: { fourPillars: FourPillars }) {
                 return <td key={i} rowSpan={2} className="unknown-cell">{p.value.label}</td>
               }
               return (
-                <td key={i} className={getElementClass(p.value.stemElement)}>
+                <td key={i} className={`bg-${getElementClass(p.value.stemElement)}`}>
                   <div className="saju-wonguk-cell">
                     <span className="saju-hanja">{p.value.stemHanja}</span>
                     <span className="saju-hangul">{p.value.stem}</span>
@@ -121,10 +129,24 @@ function SajuWongukTable({ fourPillars }: { fourPillars: FourPillars }) {
             {pillars.map((p, i) => {
               if ('unknown' in p.value) return null
               return (
-                <td key={i} className={getElementClass(p.value.branchElement)}>
+                <td key={i} className={`bg-${getElementClass(p.value.branchElement)}`}>
                   <div className="saju-wonguk-cell">
                     <span className="saju-hanja">{p.value.branchHanja}</span>
                     <span className="saju-hangul">{p.value.branch}</span>
+                  </div>
+                </td>
+              )
+            })}
+          </tr>
+          <tr>
+            {pillars.map((p, i) => {
+              if ('unknown' in p.value) return <td key={i} className="unknown-cell">-</td>
+              return (
+                <td key={i}>
+                  <div className="saju-hide-gan-list">
+                    {p.value.hideGan.map((hg, idx) => (
+                      <HanjaSpan key={idx} hanja={hg.hanja} element={hg.element} />
+                    ))}
                   </div>
                 </td>
               )
@@ -185,8 +207,6 @@ export default function SajuPage() {
 
   const renderedMarkdown = useMemo(() => {
     if (!reportMarkdown) return ''
-    // "1. 사주원국 분석" 섹션이 텍스트로 중복될 수 있으므로, 해당 섹션의 시작 부분을 찾아 그 이후부터 렌더링하거나
-    // 프롬프트에서 조절하는 것이 좋지만, 여기서는 단순히 마크다운을 렌더링합니다.
     const html = marked.parse(reportMarkdown) as string
     return DOMPurify.sanitize(html)
   }, [reportMarkdown])
