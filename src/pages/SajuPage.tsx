@@ -330,6 +330,17 @@ export default function SajuPage() {
             </label>
 
             <label>
+              <span>{lang === 'ko' ? '달력 종류' : 'Calendar'}</span>
+              <select
+                value={calendarType}
+                onChange={(event) => setCalendarType(event.target.value as 'solar' | 'lunar')}
+              >
+                <option value="solar">{lang === 'ko' ? '양력' : 'Solar'}</option>
+                <option value="lunar">{lang === 'ko' ? '음력' : 'Lunar'}</option>
+              </select>
+            </label>
+
+            <label>
               <span>{lang === 'ko' ? '생년월일' : 'Birth Date'}</span>
               <input
                 type="date"
@@ -357,17 +368,6 @@ export default function SajuPage() {
                 onChange={(event) => setTimeUnknown(event.target.checked)}
               />
               <span>{lang === 'ko' ? '시간 모름 (시주 미상 처리)' : 'Unknown Time'}</span>
-            </label>
-
-            <label>
-              <span>{lang === 'ko' ? '달력 종류' : 'Calendar'}</span>
-              <select
-                value={calendarType}
-                onChange={(event) => setCalendarType(event.target.value as 'solar' | 'lunar')}
-              >
-                <option value="solar">{lang === 'ko' ? '양력' : 'Solar'}</option>
-                <option value="lunar">{lang === 'ko' ? '음력' : 'Lunar'}</option>
-              </select>
             </label>
 
             <label>

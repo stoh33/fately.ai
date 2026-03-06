@@ -754,23 +754,25 @@ function App() {
           </header>
 
           <form className="form" onSubmit={handleSubmit}>
-            <label className="field">
-              <span>{t.clientName}</span>
-              <input
-                type="text"
-                name="clientName"
-                placeholder={t.namePlaceholder}
-                required
-              />
-            </label>
+            <div className="inline-group">
+              <label className="field">
+                <span>{t.clientName}</span>
+                <input
+                  type="text"
+                  name="clientName"
+                  placeholder={t.namePlaceholder}
+                  required
+                />
+              </label>
 
-            <label className="field">
-              <span>{t.birthCalendar}</span>
-              <select name="birthCalendar" defaultValue="solar" required>
-                <option value="solar">{t.calendarSolar}</option>
-                <option value="lunar">{t.calendarLunar}</option>
-              </select>
-            </label>
+              <label className="field">
+                <span>{t.birthCalendar}</span>
+                <select name="birthCalendar" defaultValue="solar" required>
+                  <option value="solar">{t.calendarSolar}</option>
+                  <option value="lunar">{t.calendarLunar}</option>
+                </select>
+              </label>
+            </div>
 
             <div className="form-grid date-grid">
               <label className="field">
