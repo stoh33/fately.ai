@@ -830,3 +830,17 @@ button:active {
 .markdown-body strong {
   color: #714724;
 }
+
+.report-content-standard {
+  background: #fffdf9;
+  border-radius: 16px;
+  padding: 32px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+  margin-bottom: 24px;
+}
+
+@media (max-width: 860px) {
+  .report-content-standard {
+    padding: 20px;
+  }
+}

@@ -162,14 +162,29 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
 
   try {
     const report = await callOpenAI(apiKey, env.OPENAI_MODEL || 'gpt-4o-mini', systemInstruction, userPrompt)
-    return new Response(JSON.stringify({ report }), {
-      status: 200,
-      headers: {
-        ...corsHeaders,
-        ...buildCorsHeaders(origin, env.ALLOWED_ORIGINS),
-        'content-type': 'application/json',
+    return new Response(
+      JSON.stringify({
+        report,
+        meta: {
+          fourPillars: {
+            year: computed.year,
+            month: computed.month,
+            day: computed.day,
+            hour: computed.hour,
+          },
+          fiveElements: computed.fiveElements,
+          generatedAt: new Date().toISOString(),
+        },
+      }),
+      {
+        status: 200,
+        headers: {
+          ...corsHeaders,
+          ...buildCorsHeaders(origin, env.ALLOWED_ORIGINS),
+          'content-type': 'application/json',
+        },
       },
-    })
+    )
   } catch (err: any) {
     const detail = err instanceof Error ? err.message : String(err)
     return new Response(JSON.stringify({ error: detail }), {

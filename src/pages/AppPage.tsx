@@ -3,6 +3,7 @@ import html2canvas from 'html2canvas'
 import DOMPurify from 'dompurify'
 import { marked } from 'marked'
 import '../styles/app.css'
+import '../styles/saju-page.css'
 
 const heroPhotoUrl =
   'https://images.unsplash.com/photo-1532968961962-8a0cb3a2d4f5?auto=format&fit=crop&fm=jpg&q=80&w=1600'
@@ -111,14 +112,39 @@ const copy = {
   },
 }
 
+type ElementKeyKo = '목' | '화' | '토' | '금' | '수'
+type HideGanItem = { hanja: string; hangul: string; element: ElementKeyKo }
+
+type PillarValue = {
+  stem: string
+  stemHanja: string
+  stemElement: ElementKeyKo
+  branch: string
+  branchHanja: string
+  branchElement: ElementKeyKo
+  symbol: string
+  hideGan: HideGanItem[]
+}
+
+type FourPillars = {
+  year: PillarValue
+  month: PillarValue
+  day: PillarValue
+  hour: PillarValue | { unknown: true; label: string }
+}
+
 type ApiResponse = {
   report?: string
+  meta?: {
+    fourPillars?: FourPillars
+    fiveElements?: Record<string, { count?: number; strength?: string }>
+    generatedAt?: string
+  }
   error?: string
   detail?: string
 }
 
 type ElementKey = 'Wood' | 'Fire' | 'Earth' | 'Metal' | 'Water'
-type ElementKeyKo = '목' | '화' | '토' | '금' | '수'
 
 type Pillar = {
   gan: string
@@ -147,7 +173,7 @@ type SajuChartData = {
   }
 }
 
-const elementOrder: ElementKey[] = ['Wood', 'Fire', 'Earth', 'Metal', 'Water']
+const elementOrder = ['Wood', 'Fire', 'Earth', 'Metal', 'Water'] as const
 const elementOrderKo: ElementKeyKo[] = ['목', '화', '토', '금', '수']
 
 const elementLabels: Record<ElementKey, string> = {
@@ -164,6 +190,90 @@ const elementLabelsEn: Record<ElementKey, string> = {
   Earth: 'Earth',
   Metal: 'Metal',
   Water: 'Water',
+}
+
+const getElementClass = (element: string) => {
+  switch (element) {
+    case '목': return 'wood'
+    case '화': return 'fire'
+    case '토': return 'earth'
+    case '금': return 'metal'
+    case '수': return 'water'
+    default: return ''
+  }
+}
+
+function HanjaSpan({ hanja, element }: { hanja: string; element: string }) {
+  const colorClass = getElementClass(element)
+  return <span className={`hanja-styled ${colorClass}`}>{hanja}</span>
+}
+
+function SajuWongukTable({ fourPillars, lang }: { fourPillars: FourPillars; lang: 'ko' | 'en' }) {
+  const pillars = [
+    { label: lang === 'ko' ? '시주' : 'Hour', value: fourPillars.hour },
+    { label: lang === 'ko' ? '일주' : 'Day', value: fourPillars.day },
+    { label: lang === 'ko' ? '월주' : 'Month', value: fourPillars.month },
+    { label: lang === 'ko' ? '년주' : 'Year', value: fourPillars.year },
+  ]
+
+  return (
+    <div className="saju-wonguk-container">
+      <h3>{lang === 'ko' ? '1. 사주원국 (四柱元局)' : '1. Four Pillars Grid'}</h3>
+      <table className="saju-wonguk-table">
+        <thead>
+          <tr>
+            {pillars.map((p) => (
+              <th key={p.label}>{p.label}</th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            {pillars.map((p, i) => {
+              if ('unknown' in p.value) {
+                return <td key={i} rowSpan={2} className="unknown-cell">{p.value.label}</td>
+              }
+              return (
+                <td key={i} className={`bg-${getElementClass(p.value.stemElement)}`}>
+                  <div className="saju-wonguk-cell">
+                    <span className="saju-hanja">{p.value.stemHanja}</span>
+                    <span className="saju-hangul">{p.value.stem}</span>
+                  </div>
+                </td>
+              )
+            })}
+          </tr>
+          <tr>
+            {pillars.map((p, i) => {
+              if ('unknown' in p.value) return null
+              return (
+                <td key={i} className={`bg-${getElementClass(p.value.branchElement)}`}>
+                  <div className="saju-wonguk-cell">
+                    <span className="saju-hanja">{p.value.branchHanja}</span>
+                    <span className="saju-hangul">{p.value.branch}</span>
+                  </div>
+                </td>
+              )
+            })}
+          </tr>
+          <tr>
+            {pillars.map((p, i) => {
+              if ('unknown' in p.value) return <td key={i} className="unknown-cell">-</td>
+              return (
+                <td key={i}>
+                  <div className="saju-hide-gan-list">
+                    {p.value.hideGan.map((hg, idx) => (
+                      <HanjaSpan key={idx} hanja={hg.hanja} element={hg.element} />
+                    ))}
+                  </div>
+                </td>
+              )
+            })}
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  )
 }
 
 const elementClassMap: Record<string, string> = {
@@ -327,6 +437,7 @@ function App() {
   const [lang, setLang] = useState<'ko' | 'en'>('ko')
   const [isLoading, setIsLoading] = useState(false)
   const [report, setReport] = useState('')
+  const [meta, setMeta] = useState<ApiResponse['meta'] | null>(null)
   const [error, setError] = useState('')
   const [lastPayload, setLastPayload] = useState<{
     birthCalendar: string
@@ -379,6 +490,7 @@ function App() {
     setIsLoading(true)
     setError('')
     setReport('')
+    setMeta(null)
 
     try {
       const payload = {
@@ -422,6 +534,9 @@ function App() {
       }
 
       setReport(data.report)
+      if (data.meta) {
+        setMeta(data.meta)
+      }
     } catch (submitError) {
       setError(
         submitError instanceof Error ? submitError.message : 'Failed to generate report.',
@@ -438,6 +553,7 @@ function App() {
     }
     setError('')
     setReport('')
+    setMeta(null)
   }
 
   const handleSaveImage = async () => {
@@ -756,6 +872,41 @@ function App() {
             {report ? (
               <section className="result" aria-live="polite">
                 <h3>{t.resultTitle}</h3>
+                
+                <div className="report-content-standard">
+                  {meta?.fourPillars ? <SajuWongukTable fourPillars={meta.fourPillars} lang={lang} /> : null}
+
+                  {meta?.fiveElements ? (
+                    <div className="elements-bar" aria-label="오행 분포 요약">
+                      {(
+                        [
+                          ['목', 'wood'],
+                          ['화', 'fire'],
+                          ['토', 'earth'],
+                          ['금', 'metal'],
+                          ['수', 'water'],
+                        ] as Array<[ElementKeyKo, string]>
+                      ).map(([key, klass]) => (
+                        <div key={key} className={`element-chip ${klass}`}>
+                          <strong>{key}</strong>
+                          <span>
+                            {meta.fiveElements![key].count} / {meta.fiveElements![key].strength}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  ) : null}
+
+                  {renderedMarkdown ? (
+                    <div
+                      className="markdown-body"
+                      dangerouslySetInnerHTML={{ __html: renderedMarkdown }}
+                    />
+                  ) : (
+                    <pre className="report-markdown">{markdown || report}</pre>
+                  )}
+                </div>
+
                 {parsed.jsonError ? (
                   <p className="json-error">
                     JSON parse failed. Showing text only. ({parsed.jsonError})
@@ -999,15 +1150,6 @@ function App() {
                     </div>
                   </div>
                 ) : null}
-
-                {renderedMarkdown ? (
-                  <div
-                    className="report-markdown markdown-body"
-                    dangerouslySetInnerHTML={{ __html: renderedMarkdown }}
-                  />
-                ) : (
-                  <pre className="report-markdown">{markdown || report}</pre>
-                )}
               </section>
             ) : null}
           </form>
