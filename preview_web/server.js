@@ -94,7 +94,8 @@ const server = http.createServer(async (req, res) => {
             "2) 2026년 운세: 일운/재물운/관운/관계운\n" +
             "3) 2026년 월별 운세: 1월~12월 (각 월 1~2개 불릿)\n" +
             "4) 실천 팁 5개\n" +
-            "5) 사주에 맞는 골프 스타일 해석 + 보완점 3개 (단, 구체적인 훈련법은 제외)",
+            "5) 사주 성향 기반 추정 MBTI 및 간단 설명\n" +
+            "6) 사주에 맞는 골프 스타일 해석 + 보완점 3개 (단, 구체적인 훈련법은 제외)",
         },
         { role: "user", content: birthInfo },
         { role: "user", content: location },
