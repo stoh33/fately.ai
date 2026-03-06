@@ -347,31 +347,76 @@
 
 .markdown-body {
   font-family: "Noto Serif KR", serif;
-  font-size: 1.1rem;
-  line-height: 1.8;
+  font-size: 1.05rem;
+  line-height: 1.75;
   color: #2d2115;
 }
 
 .markdown-body h2 {
   font-family: "Cinzel", "Noto Serif KR", serif;
-  font-size: 1.6rem;
-  margin: 40px 0 20px;
-  padding-bottom: 12px;
-  border-bottom: 2px solid rgba(149, 105, 62, 0.2);
+  font-size: 1.35rem;
+  margin: 32px 0 16px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid rgba(149, 105, 62, 0.15);
   color: #4a3728;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.markdown-body h2::before {
+  content: "";
+  display: inline-block;
+  width: 4px;
+  height: 1.2em;
+  background: #95693e;
+  border-radius: 2px;
+}
+
+.markdown-body h3 {
+  font-size: 1.15rem;
+  margin: 24px 0 12px;
+  color: #5d4037;
 }
 
 .markdown-body p {
-  margin-bottom: 16px;
+  margin-bottom: 14px;
+  text-align: justify;
 }
 
 .markdown-body ul, .markdown-body ol {
-  margin-bottom: 24px;
-  padding-left: 24px;
+  margin-bottom: 20px;
+  padding-left: 20px;
 }
 
 .markdown-body li {
-  margin-bottom: 8px;
+  margin-bottom: 6px;
+  position: relative;
+}
+
+.markdown-body hr {
+  border: none;
+  border-top: 1px dashed rgba(149, 105, 62, 0.2);
+  margin: 24px 0;
+}
+
+.markdown-body ul li::before {
+  content: "•";
+  color: #95693e;
+  font-weight: bold;
+  display: inline-block;
+  width: 1em;
+  margin-left: -1em;
+}
+
+.markdown-body ul {
+  list-style: none;
+}
+
+.markdown-body strong {
+  color: #744a28;
+  background: linear-gradient(180deg, transparent 70%, rgba(149, 105, 62, 0.1) 30%);
+  padding: 0 2px;
 }
 
 .no-report {
