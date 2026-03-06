@@ -124,15 +124,38 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
       : 'unknown'
   const currentYear = new Date().getFullYear()
 
-  const systemInstruction = `
-당신은 전문 사주 분석가이자 점성술 상담사입니다.
-결과는 마크다운으로 작성하고, 각 섹션을 H2(##)로 분리하세요.
-`.trim()
-  const userPrompt = `
-다음 정보를 바탕으로 사주 리포트를 작성해줘.
+  const isEn = body.lang === 'en'
+  const systemInstruction = isEn 
+    ? `You are an expert Saju (Four Pillars of Destiny) analyst and astrology consultant.
+       Write the report in English.
+       Use Markdown formatting and separate sections with H2 (##) headers.`
+    : `당신은 전문 사주 분석가이자 점성술 상담사입니다.
+       결과는 마크다운으로 작성하고, 각 섹션을 H2(##)로 분리하세요.`.trim()
+
+  const userPrompt = isEn
+    ? `Write a Saju analysis report based on the following:
+       - Name: ${body.clientName || 'Client'}
+       - Birth: ${body.birthYear}-${String(body.birthMonth).padStart(2, '0')}-${String(body.birthDay).padStart(2, '0')} (${body.birthCalendar || 'solar'})
+       - Gender: ${body.gender || 'Unknown'}, Blood Type: ${body.bloodType || 'Unknown'}
+       - Zodiac Sign: ${zodiac}
+       - Saju Data: ${JSON.stringify(computed)}
+
+       Follow this order:
+       1) Core Saju Interpretation (Note: Visual table is provided in UI, don't list pillars as text list)
+       2) Five Elements Balance & Personality
+       3) 2026 Yearly Outlook
+       4) 2026 Monthly Outlook (1-12, short bullets)
+       5) Zodiac Sign Analysis
+       6) Saju & Zodiac Cross-Analysis
+       7) Blood Type Personality
+       8) Saju & Blood Type Cross-Analysis
+       9) Integrated MBTI Estimation
+       10) Conclusion (5 lines)
+       11) Golf Style & Advice (Last section, exclude specific training plans)`
+    : `다음 정보를 바탕으로 사주 리포트를 작성해줘.
+- 이름: ${body.clientName || '의뢰인'}
 - 생년월일: ${body.birthYear}-${String(body.birthMonth).padStart(2, '0')}-${String(body.birthDay).padStart(2, '0')} (${body.birthCalendar || 'solar'})
-- 성별: ${body.gender || '미상'}
-- 혈액형: ${body.bloodType || '미상'}
+- 성별: ${body.gender || '미상'}, 혈액형: ${body.bloodType || '미상'}
 - 별자리(양력 기준): ${zodiac}
 - 사주원국 데이터: ${JSON.stringify(computed)}
 
@@ -158,8 +181,7 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
 11) 사주 맞춤 골프 스타일 & 보완점 (이 섹션은 마지막에 배치)
    - 추천 플레이 스타일 1가지
    - 강점 활용 포인트 3가지
-   - 보완 및 플레이 조언 5가지(스윙/멘탈/루틴/코스 운영 포함. 단, 구체적인 훈련법이나 실천 플랜은 제외할 것)
-`
+   - 보완 및 플레이 조언 5가지(스윙/멘탈/루틴/코스 운영 포함. 단, 구체적인 훈련법이나 실천 플랜은 제외할 것)`
 
   try {
     const report = await callOpenAI(apiKey, env.OPENAI_MODEL || 'gpt-4o-mini', systemInstruction, userPrompt)

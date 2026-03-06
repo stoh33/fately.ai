@@ -90,17 +90,17 @@ function HanjaSpan({ hanja, element }: { hanja: string; element: string }) {
   return <span className={`hanja-styled ${colorClass}`}>{hanja}</span>
 }
 
-function SajuWongukTable({ fourPillars }: { fourPillars: FourPillars }) {
+function SajuWongukTable({ fourPillars, lang }: { fourPillars: FourPillars; lang: 'ko' | 'en' }) {
   const pillars = [
-    { label: '시주', value: fourPillars.hour },
-    { label: '일주', value: fourPillars.day },
-    { label: '월주', value: fourPillars.month },
-    { label: '년주', value: fourPillars.year },
+    { label: lang === 'ko' ? '시주' : 'Hour', value: fourPillars.hour },
+    { label: lang === 'ko' ? '일주' : 'Day', value: fourPillars.day },
+    { label: lang === 'ko' ? '월주' : 'Month', value: fourPillars.month },
+    { label: lang === 'ko' ? '년주' : 'Year', value: fourPillars.year },
   ]
 
   return (
     <div className="saju-wonguk-container">
-      <h3>1. 사주원국 (四柱元局)</h3>
+      <h3>{lang === 'ko' ? '1. 사주원국 (四柱元局)' : '1. Four Pillars Grid'}</h3>
       <table className="saju-wonguk-table">
         <thead>
           <tr>
@@ -159,6 +159,7 @@ function SajuWongukTable({ fourPillars }: { fourPillars: FourPillars }) {
 }
 
 export default function SajuPage() {
+  const [lang, setLang] = useState<'ko' | 'en'>('ko')
   const [clientName, setClientName] = useState('')
   const [birthDate, setBirthDate] = useState('')
   const [birthTime, setBirthTime] = useState('11:20')
@@ -224,6 +225,7 @@ export default function SajuPage() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
+          lang,
           clientName,
           birthDate,
           birthTime: birthTimeValue,
@@ -294,25 +296,41 @@ export default function SajuPage() {
     <div className="saju-page">
       <main className="saju-wrap">
         <section className="saju-header">
-          <h1>사주 리포트 생성</h1>
-          <p>사주팔자(四柱八字) 종합 분석 보고서를 생성합니다.</p>
+          <div className="lang-toggle" style={{ marginBottom: '16px' }}>
+            <button
+              type="button"
+              className={lang === 'ko' ? 'active' : ''}
+              onClick={() => setLang('ko')}
+            >
+              한국어
+            </button>
+            <button
+              type="button"
+              className={lang === 'en' ? 'active' : ''}
+              onClick={() => setLang('en')}
+            >
+              English
+            </button>
+          </div>
+          <h1>{lang === 'ko' ? '사주 리포트 생성' : 'Generate Saju Report'}</h1>
+          <p>{lang === 'ko' ? '사주팔자(四柱八字) 종합 분석 보고서를 생성합니다.' : 'Comprehensive analysis based on Four Pillars of Destiny.'}</p>
         </section>
 
         <section className="saju-card">
           <form className="saju-form" onSubmit={handleSubmit}>
             <label>
-              <span>이름</span>
+              <span>{lang === 'ko' ? '이름' : 'Name'}</span>
               <input
                 type="text"
                 value={clientName}
                 onChange={(event) => setClientName(event.target.value)}
-                placeholder="예: 김민준"
+                placeholder={lang === 'ko' ? "예: 김민준" : "e.g. John Doe"}
                 required
               />
             </label>
 
             <label>
-              <span>생년월일</span>
+              <span>{lang === 'ko' ? '생년월일' : 'Birth Date'}</span>
               <input
                 type="date"
                 value={birthDate}
@@ -322,7 +340,7 @@ export default function SajuPage() {
             </label>
 
             <label>
-              <span>출생시간</span>
+              <span>{lang === 'ko' ? '출생시간' : 'Birth Time'}</span>
               <input
                 type="time"
                 value={birthTime}
@@ -338,34 +356,34 @@ export default function SajuPage() {
                 checked={timeUnknown}
                 onChange={(event) => setTimeUnknown(event.target.checked)}
               />
-              <span>시간 모름 (시주 미상 처리)</span>
+              <span>{lang === 'ko' ? '시간 모름 (시주 미상 처리)' : 'Unknown Time'}</span>
             </label>
 
             <label>
-              <span>달력 종류</span>
+              <span>{lang === 'ko' ? '달력 종류' : 'Calendar'}</span>
               <select
                 value={calendarType}
                 onChange={(event) => setCalendarType(event.target.value as 'solar' | 'lunar')}
               >
-                <option value="solar">양력</option>
-                <option value="lunar">음력</option>
+                <option value="solar">{lang === 'ko' ? '양력' : 'Solar'}</option>
+                <option value="lunar">{lang === 'ko' ? '음력' : 'Lunar'}</option>
               </select>
             </label>
 
             <label>
-              <span>성별</span>
+              <span>{lang === 'ko' ? '성별' : 'Gender'}</span>
               <select
                 value={gender}
                 onChange={(event) => setGender(event.target.value as 'male' | 'female' | 'other')}
               >
-                <option value="male">남성</option>
-                <option value="female">여성</option>
-                <option value="other">기타</option>
+                <option value="male">{lang === 'ko' ? '남성' : 'Male'}</option>
+                <option value="female">{lang === 'ko' ? '여성' : 'Female'}</option>
+                <option value="other">{lang === 'ko' ? '기타' : 'Other'}</option>
               </select>
             </label>
 
             <label>
-              <span>시간대</span>
+              <span>{lang === 'ko' ? '시간대' : 'Timezone'}</span>
               <input
                 type="text"
                 value={timezone}
@@ -375,26 +393,26 @@ export default function SajuPage() {
             </label>
 
             <label>
-              <span>중점 분석</span>
+              <span>{lang === 'ko' ? '중점 분석' : 'Focus'}</span>
               <select
                 value={focus}
                 onChange={(event) => setFocus(event.target.value as FocusType)}
               >
-                <option value="general">종합</option>
-                <option value="career">커리어</option>
-                <option value="wealth">재물</option>
-                <option value="relationship">대인관계</option>
-                <option value="health">건강</option>
+                <option value="general">{lang === 'ko' ? '종합' : 'General'}</option>
+                <option value="career">{lang === 'ko' ? '커리어' : 'Career'}</option>
+                <option value="wealth">{lang === 'ko' ? '재물' : 'Wealth'}</option>
+                <option value="relationship">{lang === 'ko' ? '대인관계' : 'Relationship'}</option>
+                <option value="health">{lang === 'ko' ? '건강' : 'Health'}</option>
               </select>
             </label>
 
             <label>
-              <span>혈액형</span>
+              <span>{lang === 'ko' ? '혈액형' : 'Blood Type'}</span>
               <select
                 value={bloodType}
                 onChange={(event) => setBloodType(event.target.value as BloodType)}
               >
-                <option value="unknown">모름</option>
+                <option value="unknown">{lang === 'ko' ? '모름' : 'Unknown'}</option>
                 <option value="A">A</option>
                 <option value="B">B</option>
                 <option value="O">O</option>
@@ -403,12 +421,12 @@ export default function SajuPage() {
             </label>
 
             <label>
-              <span>별자리(서양)</span>
+              <span>{lang === 'ko' ? '별자리(서양)' : 'Zodiac Sign'}</span>
               <select
                 value={zodiacSign}
                 onChange={(event) => setZodiacSign(event.target.value as ZodiacSign)}
               >
-                <option value="auto">자동 산출</option>
+                <option value="auto">{lang === 'ko' ? '자동 산출' : 'Auto'}</option>
                 <option value="Aries">Aries</option>
                 <option value="Taurus">Taurus</option>
                 <option value="Gemini">Gemini</option>
@@ -425,71 +443,71 @@ export default function SajuPage() {
             </label>
 
             <label>
-              <span>골프 숙련도</span>
+              <span>{lang === 'ko' ? '골프 숙련도' : 'Golf Level'}</span>
               <select
                 value={golfExperienceLevel}
                 onChange={(event) =>
                   setGolfExperienceLevel(event.target.value as GolfExperienceLevel)
                 }
               >
-                <option value="unknown">모름</option>
-                <option value="beginner">초급</option>
-                <option value="intermediate">중급</option>
-                <option value="advanced">상급</option>
+                <option value="unknown">{lang === 'ko' ? '모름' : 'Unknown'}</option>
+                <option value="beginner">{lang === 'ko' ? '초급' : 'Beginner'}</option>
+                <option value="intermediate">{lang === 'ko' ? '중급' : 'Intermediate'}</option>
+                <option value="advanced">{lang === 'ko' ? '상급' : 'Advanced'}</option>
               </select>
             </label>
 
             <label>
-              <span>골프 목표</span>
+              <span>{lang === 'ko' ? '골프 목표' : 'Golf Goal'}</span>
               <select
                 value={golfGoal}
                 onChange={(event) => setGolfGoal(event.target.value as GolfGoal)}
               >
-                <option value="score">스코어</option>
-                <option value="distance">비거리</option>
-                <option value="accuracy">정확도</option>
-                <option value="consistency">일관성</option>
-                <option value="mental">멘탈</option>
-                <option value="unknown">모름</option>
+                <option value="score">{lang === 'ko' ? '스코어' : 'Score'}</option>
+                <option value="distance">{lang === 'ko' ? '비거리' : 'Distance'}</option>
+                <option value="accuracy">{lang === 'ko' ? '정확도' : 'Accuracy'}</option>
+                <option value="consistency">{lang === 'ko' ? '일관성' : 'Consistency'}</option>
+                <option value="mental">{lang === 'ko' ? '멘탈' : 'Mental'}</option>
+                <option value="unknown">{lang === 'ko' ? '모름' : 'Unknown'}</option>
               </select>
             </label>
 
             <label className="full">
-              <span>추가 메모 / 질문</span>
+              <span>{lang === 'ko' ? '추가 메모 / 질문' : 'Notes / Questions'}</span>
               <textarea
                 value={notes}
                 onChange={(event) => setNotes(event.target.value)}
-                placeholder="예: 2026년 커리어 전환 시기와 주의점"
+                placeholder={lang === 'ko' ? "예: 2026년 커리어 전환 시기와 주의점" : "e.g. Career changes in 2026"}
                 rows={4}
               />
             </label>
 
             <label className="full">
-              <span>골프 통증/제한(선택)</span>
+              <span>{lang === 'ko' ? '골프 통증/제한(선택)' : 'Golf Pain/Limits (Optional)'}</span>
               <input
                 type="text"
                 value={golfPainOrLimits}
                 onChange={(event) => setGolfPainOrLimits(event.target.value)}
-                placeholder="예: 허리 피로, 손목 뻐근함"
+                placeholder={lang === 'ko' ? "예: 허리 피로, 손목 뻐근함" : "e.g. Back pain"}
               />
             </label>
 
             <label className="full">
-              <span>골프 메모(선택)</span>
+              <span>{lang === 'ko' ? '골프 메모(선택)' : 'Golf Notes (Optional)'}</span>
               <textarea
                 value={golfNotes}
                 onChange={(event) => setGolfNotes(event.target.value)}
-                placeholder="예: 미스 패턴 slice, 선호 클럽 7I, 평균 95타"
+                placeholder={lang === 'ko' ? "예: 미스 패턴 slice, 선호 클럽 7I, 평균 95타" : "e.g. slice miss, average score 95"}
                 rows={3}
               />
             </label>
 
             <div className="actions">
               <button type="submit" disabled={isLoading}>
-                {isLoading ? '생성 중...' : '사주 리포트 생성'}
+                {isLoading ? (lang === 'ko' ? '생성 중...' : 'Generating...') : (lang === 'ko' ? '사주 리포트 생성' : 'Generate Report')}
               </button>
               <button type="button" className="ghost" onClick={handleCopy} disabled={!reportMarkdown}>
-                {copied ? '복사됨' : '복사'}
+                {copied ? (lang === 'ko' ? '복사됨' : 'Copied') : (lang === 'ko' ? '복사' : 'Copy')}
               </button>
             </div>
           </form>
@@ -498,10 +516,10 @@ export default function SajuPage() {
         {error ? <p className="error">{error}</p> : null}
 
         <section className="report-panel">
-          <h2>사주 분석 리포트</h2>
+          <h2>{lang === 'ko' ? '사주 분석 리포트' : 'Analysis Report'}</h2>
           
           <div className="report-content">
-            {fourPillars ? <SajuWongukTable fourPillars={fourPillars} /> : null}
+            {fourPillars ? <SajuWongukTable fourPillars={fourPillars} lang={lang} /> : null}
 
             {fiveElements ? (
               <div className="elements-bar" aria-label="오행 분포 색상 요약">
@@ -530,7 +548,7 @@ export default function SajuPage() {
                 dangerouslySetInnerHTML={{ __html: renderedMarkdown }} 
               />
             ) : (
-              <p className="no-report">아직 생성된 리포트가 없습니다.</p>
+              <p className="no-report">{lang === 'ko' ? '아직 생성된 리포트가 없습니다.' : 'No report generated yet.'}</p>
             )}
           </div>
         </section>

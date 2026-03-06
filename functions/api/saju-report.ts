@@ -133,16 +133,37 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
   const selectedZodiac =
     body.zodiacSign && body.zodiacSign !== 'auto' ? String(body.zodiacSign) : inferredZodiac
 
-  const systemInstruction = `
-당신은 전문 사주 분석가이자 점성술 상담사입니다.
-아래 출력 형식을 반드시 지키세요.
-- 마크다운 형식
-- 각 섹션은 H2(##) 제목 사용
-- 단정적 확정 표현 대신 경향/가능성 중심 표현
-- 마지막에는 실행 가능한 보완 행동을 구체적으로 제시
-`.trim()
-  const userPrompt = `
-사주 분석 보고서를 작성해줘.
+  const isEn = body.lang === 'en'
+  const systemInstruction = isEn
+    ? `You are an expert Saju (Four Pillars of Destiny) analyst and astrology consultant.
+       Write the report in English.
+       Use Markdown formatting and separate sections with H2 (##) headers.`.trim()
+    : `당신은 전문 사주 분석가이자 점성술 상담사입니다.
+       아래 출력 형식을 반드시 지키세요.
+       - 마크다운 형식
+       - 각 섹션은 H2(##) 제목 사용`.trim()
+
+  const userPrompt = isEn
+    ? `Write a Saju analysis report based on the following:
+       - Name: ${body.clientName || 'Client'}
+       - Birth: ${body.birthDate}
+       - Gender: ${body.gender || 'Unknown'}, Blood Type: ${body.bloodType || 'Unknown'}
+       - Zodiac Sign: ${selectedZodiac}
+       - Saju Data: ${JSON.stringify(computed)}
+
+       Follow this order:
+       1) Core Saju Interpretation (Note: Visual table is provided in UI, don't list pillars as text list)
+       2) Five Elements Balance & Personality
+       3) 2026 Yearly Outlook
+       4) 2026 Monthly Outlook (1-12, short bullets)
+       5) Zodiac Sign Analysis
+       6) Saju & Zodiac Cross-Analysis
+       7) Blood Type Personality
+       8) Saju & Blood Type Cross-Analysis
+       9) Integrated MBTI Estimation
+       10) Conclusion (5 lines)
+       11) Golf Style & Advice (Last section, exclude specific training plans)`
+    : `사주 분석 보고서를 작성해줘.
 의뢰인: ${body.clientName || '의뢰인'}, 생년월일: ${body.birthDate}, 성별: ${body.gender || '미상'}, 혈액형: ${body.bloodType || '미상'}
 별자리: ${selectedZodiac} (입력값: ${body.zodiacSign || 'auto'}, 기준: ${body.calendarType === 'lunar' ? '양력 환산 필요 가능성' : '양력 기준'})
 사주원국 데이터: 년(${computed.year.stem}${computed.year.branch}), 월(${computed.month.stem}${computed.month.branch}), 일(${computed.day.stem}${computed.day.branch}), 시(${computed.hour.stem || '미상'}${computed.hour.branch || ''})
@@ -175,8 +196,7 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
 그리고 보고서의 최종 섹션(H2)으로 반드시 "사주 맞춤 골프 스타일 & 보완점"을 추가해:
 - 추천 골프 스타일 1가지(예: 전략형/공격형/리듬형/정교형)
 - 강점 활용 포인트 3가지
-- 약점 보완 및 플레이 조언 5가지 (스윙, 멘탈, 루틴, 코스매니지먼트 관련 조언. 단, 구체적인 훈련법이나 주차별 훈련 플랜은 제외할 것)
-`
+- 약점 보완 및 플레이 조언 5가지 (스윙, 멘탈, 루틴, 코스매니지먼트 관련 조언. 단, 구체적인 훈련법이나 주차별 훈련 플랜은 제외할 것)`
 
   try {
     const reportMarkdown = await callOpenAI(
