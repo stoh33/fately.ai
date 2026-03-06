@@ -30,7 +30,7 @@ const hours = [
 const copy = {
   ko: {
     title: '오선생님의 사주보기',
-    subtitle: '',
+    subtitle: '사주, 별자리, 혈액형을 종합 분석하여 당신의 성향과 추정 MBTI를 산정해 드립니다.',
     subtitleExtra: '',
     sectionTitle: '기본 정보',
     sectionHelp: '태어난 순간의 기운을 정확히 담아주세요.',
@@ -73,7 +73,7 @@ const copy = {
   },
   en: {
     title: "Master Oh's Saju Reading",
-    subtitle: '',
+    subtitle: 'Comprehensive analysis of Saju, Zodiac, and Blood Type to estimate your personality and MBTI.',
     subtitleExtra: '',
     sectionTitle: 'Basic Details',
     sectionHelp: 'Please enter the exact birth moment.',
@@ -732,8 +732,8 @@ function App() {
             </button>
           </div>
           <h1>{t.title}</h1>
-          <p className="subhead">{t.subtitle}</p>
-          <p className="subhead">{t.subtitleExtra}</p>
+          <p className="app-description">{t.subtitle}</p>
+          {t.subtitleExtra ? <p className="subhead">{t.subtitleExtra}</p> : null}
           <figure className="hero-visual">
             <img
               src={heroPhotoUrl}
