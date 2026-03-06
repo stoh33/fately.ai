@@ -16,9 +16,10 @@ type ElementKey = '목' | '화' | '토' | '금' | '수'
 export type PillarValue = {
   stem: string
   stemHanja: string
+  stemElement: ElementKey
   branch: string
   branchHanja: string
-  element: ElementKey
+  branchElement: ElementKey
   symbol: string
 }
 
@@ -59,6 +60,15 @@ const BRANCH_HANJA_TO_HANGUL: Record<string, string> = {
   '午': '오', '未': '미', '申': '신', '酉': '유', '戌': '술', '亥': '해'
 }
 
+const STEM_ELEMENT: Record<string, ElementKey> = {
+  갑: '목', 을: '목', 병: '화', 정: '화', 무: '토', 기: '토', 경: '금', 신: '금', 임: '수', 계: '수',
+}
+
+const BRANCH_ELEMENT: Record<string, ElementKey> = {
+  '子': '수', '丑': '토', '寅': '목', '卯': '목', '辰': '토', '巳': '화',
+  '午': '화', '未': '토', '申': '금', '酉': '금', '戌': '토', '亥': '수'
+}
+
 // 간지 시간을 숫자로 매핑 (대표 시간값)
 const BRANCH_TO_TIME: Record<string, string> = {
   '자': '00:00', '축': '02:00', '인': '04:00', '묘': '06:00', '진': '08:00', '사': '10:00',
@@ -94,17 +104,16 @@ function parseBirthTime(value: string | null) {
 function getPillarValue(gan: string, zhi: string): PillarValue {
   const stem = STEM_HANJA_TO_HANGUL[gan]
   const branch = BRANCH_HANJA_TO_HANGUL[zhi]
-  const STEM_ELEMENT: Record<string, ElementKey> = {
-    갑: '목', 을: '목', 병: '화', 정: '화', 무: '토', 기: '토', 경: '금', 신: '금', 임: '수', 계: '수',
-  }
-  const element = STEM_ELEMENT[stem]
+  const stemElement = STEM_ELEMENT[stem]
+  const branchElement = BRANCH_ELEMENT[zhi]
   return {
     stem,
     stemHanja: gan,
+    stemElement,
     branch,
     branchHanja: zhi,
-    element,
-    symbol: ELEMENT_SYMBOL[element],
+    branchElement,
+    symbol: ELEMENT_SYMBOL[stemElement],
   }
 }
 
@@ -168,13 +177,8 @@ export function computeSaju(input: SajuInput): SajuComputation {
   
   const addPillarElements = (gan: string, zhi: string) => {
     const p = getPillarValue(gan, zhi)
-    elementCount[p.element] += 1
-    
-    const BRANCH_ELEMENT: Record<string, ElementKey> = {
-      '子': '수', '丑': '토', '寅': '목', '卯': '목', '辰': '토', '巳': '화',
-      '午': '화', '未': '토', '申': '금', '酉': '금', '戌': '토', '亥': '수'
-    }
-    elementCount[BRANCH_ELEMENT[zhi]] += 1
+    elementCount[p.stemElement] += 1
+    elementCount[p.branchElement] += 1
   }
 
   addPillarElements(eightChar.getYearGan(), eightChar.getYearZhi())

@@ -123,7 +123,7 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
 
   const currentYear = new Date().getFullYear()
   const currentYearGanji = getSexagenaryYear(currentYear)
-  const [yearStr, monthStr, dayStr] = String(body.birthDate || '').split('-')
+  const [_yearStr, monthStr, dayStr] = String(body.birthDate || '').split('-')
   const birthMonth = Number(monthStr)
   const birthDay = Number(dayStr)
   const inferredZodiac =
@@ -156,7 +156,7 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
 5. 올해 월별 사주 (${currentYear}년 1~12월)
    - 각 월마다 핵심 키워드, 기회, 주의점, 추천 행동을 2~3문장으로 작성
 6. 건강, 재물, 관계 조언
-7. 사주 맞춤 골프 스타일 및 훈련 조언 (2주 플랜 포함)
+7. 사주 맞춤 골프 스타일 및 보완점 (조언 포함)
 8. 별자리(서양점성술) 핵심 성향 분석
 9. 사주 결과와 별자리 교차분석
   - 공통점(최소 3개)
@@ -172,8 +172,7 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
 그리고 보고서의 최종 섹션(H2)으로 반드시 "사주 맞춤 골프 스타일 & 보완점"을 추가해:
 - 추천 골프 스타일 1가지(예: 전략형/공격형/리듬형/정교형)
 - 강점 활용 포인트 3가지
-- 약점 보완 훈련 5가지(스윙, 멘탈, 루틴, 코스매니지먼트 포함)
-- 2주 실천 체크리스트(주차별)
+- 약점 보완 및 플레이 조언 5가지 (스윙, 멘탈, 루틴, 코스매니지먼트 관련 조언. 단, 구체적인 훈련법이나 주차별 훈련 플랜은 제외할 것)
 `
 
   try {

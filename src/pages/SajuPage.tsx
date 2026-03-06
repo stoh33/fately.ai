@@ -20,10 +20,29 @@ type ZodiacSign =
 type GolfExperienceLevel = 'beginner' | 'intermediate' | 'advanced' | 'unknown'
 type GolfGoal = 'distance' | 'accuracy' | 'consistency' | 'mental' | 'score' | 'unknown'
 
+type ElementKey = '목' | '화' | '토' | '금' | '수'
+
+type PillarValue = {
+  stem: string
+  stemHanja: string
+  stemElement: ElementKey
+  branch: string
+  branchHanja: string
+  branchElement: ElementKey
+  symbol: string
+}
+
+type FourPillars = {
+  year: PillarValue
+  month: PillarValue
+  day: PillarValue
+  hour: PillarValue | { unknown: true; label: string }
+}
+
 type ReportResponse = {
   reportMarkdown?: string
   meta?: {
-    fourPillars?: Record<string, unknown>
+    fourPillars?: FourPillars
     fiveElements?: Record<string, { count?: number; strength?: string }>
     generatedAt?: string
   }
@@ -32,7 +51,6 @@ type ReportResponse = {
 }
 
 const STORAGE_KEY = 'sajuReport:last'
-type ElementKey = '목' | '화' | '토' | '금' | '수'
 type FiveElementsMeta = Record<ElementKey, { count: number; strength: string }>
 
 function normalizeFiveElements(
@@ -49,6 +67,70 @@ function normalizeFiveElements(
     result[key] = { count: item.count, strength: item.strength }
   }
   return result
+}
+
+const getElementClass = (element: string) => {
+  switch (element) {
+    case '목': return 'bg-wood'
+    case '화': return 'bg-fire'
+    case '토': return 'bg-earth'
+    case '금': return 'bg-metal'
+    case '수': return 'bg-water'
+    default: return ''
+  }
+}
+
+function SajuWongukTable({ fourPillars }: { fourPillars: FourPillars }) {
+  const pillars = [
+    { label: '시주', value: fourPillars.hour },
+    { label: '일주', value: fourPillars.day },
+    { label: '월주', value: fourPillars.month },
+    { label: '년주', value: fourPillars.year },
+  ]
+
+  return (
+    <div className="saju-wonguk-container">
+      <table className="saju-wonguk-table">
+        <thead>
+          <tr>
+            {pillars.map((p) => (
+              <th key={p.label}>{p.label}</th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            {pillars.map((p, i) => {
+              if ('unknown' in p.value) {
+                return <td key={i} rowSpan={2}>{p.value.label}</td>
+              }
+              return (
+                <td key={i} className={getElementClass(p.value.stemElement)}>
+                  <div className="saju-wonguk-cell">
+                    <span className="saju-hanja">{p.value.stemHanja}</span>
+                    <span className="saju-hangul">{p.value.stem}</span>
+                  </div>
+                </td>
+              )
+            })}
+          </tr>
+          <tr>
+            {pillars.map((p, i) => {
+              if ('unknown' in p.value) return null
+              return (
+                <td key={i} className={getElementClass(p.value.branchElement)}>
+                  <div className="saju-wonguk-cell">
+                    <span className="saju-hanja">{p.value.branchHanja}</span>
+                    <span className="saju-hangul">{p.value.branch}</span>
+                  </div>
+                </td>
+              )
+            })}
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  )
 }
 
 export default function SajuPage() {
@@ -72,6 +154,7 @@ export default function SajuPage() {
   const [error, setError] = useState('')
   const [reportMarkdown, setReportMarkdown] = useState('')
   const [fiveElements, setFiveElements] = useState<FiveElementsMeta | null>(null)
+  const [fourPillars, setFourPillars] = useState<FourPillars | null>(null)
   const [copied, setCopied] = useState(false)
 
   useEffect(() => {
@@ -81,11 +164,15 @@ export default function SajuPage() {
       const parsed = JSON.parse(cached) as {
         reportMarkdown?: string
         fiveElements?: Record<string, { count?: number; strength?: string }>
+        fourPillars?: FourPillars
       }
       if (parsed.reportMarkdown) {
         setReportMarkdown(parsed.reportMarkdown)
       }
       setFiveElements(normalizeFiveElements(parsed.fiveElements))
+      if (parsed.fourPillars) {
+        setFourPillars(parsed.fourPillars)
+      }
     } catch {
       localStorage.removeItem(STORAGE_KEY)
     }
@@ -145,11 +232,16 @@ export default function SajuPage() {
       setReportMarkdown(data.reportMarkdown)
       const normalizedFiveElements = normalizeFiveElements(data.meta?.fiveElements)
       setFiveElements(normalizedFiveElements)
+      if (data.meta?.fourPillars) {
+        setFourPillars(data.meta.fourPillars)
+      }
+      
       localStorage.setItem(
         STORAGE_KEY,
         JSON.stringify({
           reportMarkdown: data.reportMarkdown,
           fiveElements: normalizedFiveElements,
+          fourPillars: data.meta?.fourPillars,
           savedAt: new Date().toISOString(),
         }),
       )
@@ -376,6 +468,9 @@ export default function SajuPage() {
 
         <section className="report-panel">
           <h2>리포트 미리보기</h2>
+          
+          {fourPillars ? <SajuWongukTable fourPillars={fourPillars} /> : null}
+
           {fiveElements ? (
             <div className="elements-bar" aria-label="오행 분포 색상 요약">
               {(
